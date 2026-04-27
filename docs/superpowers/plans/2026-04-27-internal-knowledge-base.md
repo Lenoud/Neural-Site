@@ -138,6 +138,28 @@ a:hover { text-decoration: underline; }
 /* 右侧面板区块 */
 .right-panel section { margin-bottom: 24px; }
 .right-panel h4 { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+
+/* 移动端响应式 */
+@media (max-width: 768px) {
+  .page-layout { flex-direction: column; }
+  .sidebar {
+    position: fixed; top: 0; left: -280px;
+    width: 280px; height: 100vh; z-index: 50;
+    transition: left 0.3s ease;
+  }
+  .sidebar.open { left: 0; }
+  .right-panel { display: none; }
+  .content-area { padding: 20px; max-width: 100%; }
+  .mobile-toggle {
+    display: block;
+    position: fixed; top: 12px; left: 12px; z-index: 40;
+    background: var(--bg-sidebar); border: none; color: var(--text-primary);
+    padding: 8px 12px; border-radius: 4px; cursor: pointer;
+  }
+}
+@media (min-width: 769px) {
+  .mobile-toggle { display: none; }
+}
 ```
 
 - [ ] **Step 2: 更新 Layout.astro 为基础 HTML 外壳**
@@ -146,6 +168,8 @@ Modify `src/layouts/Layout.astro`:
 
 ```astro
 ---
+import '../styles/global.css';
+
 interface Props {
   title: string;
 }
@@ -163,10 +187,6 @@ const { title } = Astro.props;
     <slot />
   </body>
 </html>
-
-<style is:global>
-  @import '../styles/global.css';
-</style>
 ```
 
 - [ ] **Step 3: 创建 PageLayout 三栏布局组件**
@@ -472,10 +492,10 @@ Run: `npm run dev`
 
 ```typescript
 const allNotes = await getCollection('notes');
-console.log(allNotes.map(n => ({ slug: n.slug, title: n.data.title })));
+console.log(allNotes.map(n => ({ id: n.id, title: n.data.title })));
 ```
 
-确认控制台输出 8 条记录，slug 格式为 `入门/快速开始` 等。
+确认控制台输出 8 条记录，id 格式为 `入门/快速开始` 等。
 
 - [ ] **Step 5: 提交**
 
@@ -503,9 +523,10 @@ export async function buildSlugMap(): Promise<Map<string, string>> {
   const notes = await getCollection('notes');
   const map = new Map<string, string>();
   for (const note of notes) {
-    // 从 slug 中提取文件名：入门/快速开始 → 快速开始
-    const fileName = note.slug.split('/').pop()!;
-    map.set(fileName, note.slug);
+    // 从 id 中提取文件名：入门/快速开始 → 快速开始
+    // Astro 6 glob loader 的 id 等同于旧版 slug
+    const fileName = note.id.split('/').pop()!;
+    map.set(fileName, note.id);
   }
   return map;
 }
@@ -573,17 +594,43 @@ export function remarkWikilinks(slugMap: Map<string, string>) {
 
 ```bash
 npm install unist-util-visit
-npm install -D @types/unist-util-visit
 ```
+
+注意：`unist-util-visit` v5+ 自带类型定义，不需要安装 `@types/unist-util-visit`。
 
 Modify `astro.config.mjs`:
 
 ```javascript
 import { defineConfig } from 'astro/config';
 import { remarkWikilinks } from './src/plugins/remark-wikilinks';
-import { buildSlugMap } from './src/utils/slug-map';
+import { glob } from 'astro/loaders';
+import path from 'node:path';
+import fs from 'node:fs';
 
-const slugMap = await buildSlugMap();
+// 在配置阶段无法使用 getCollection（astro:content 不可用）
+// 直接读取文件系统构建 slug map
+function buildSlugMapFromFS(): Map<string, string> {
+  const notesDir = path.resolve('./src/content/notes');
+  const map = new Map<string, string>();
+
+  function walk(dir: string) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.name.endsWith('.md')) {
+        const relativePath = path.relative(notesDir, fullPath).replace(/\.md$/, '');
+        const fileName = path.basename(entry.name, '.md');
+        map.set(fileName, relativePath);
+      }
+    }
+  }
+
+  walk(notesDir);
+  return map;
+}
+
+const slugMap = buildSlugMapFromFS();
 
 export default defineConfig({
   markdown: {
@@ -619,7 +666,7 @@ Create `src/pages/notes/[...slug].astro`:
 
 ```astro
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
 import PageLayout from '../../components/PageLayout.astro';
 import { buildSlugMap } from '../../utils/slug-map';
@@ -628,42 +675,41 @@ import { buildBacklinks } from '../../utils/backlinks';
 export async function getStaticPaths() {
   const notes = await getCollection('notes');
   return notes.map(note => ({
-    params: { slug: note.slug },
+    params: { slug: note.id },
     props: { note },
   }));
 }
 
 const { note } = Astro.props;
-const { Content } = await note.render();
+const { Content, headings } = await render(note);
 
 // 构建图谱数据
 const slugMap = await buildSlugMap();
 const allNotes = await getCollection('notes');
-const existingSlugs = new Set(allNotes.map(n => n.slug));
 
-const nodes = [{ id: note.slug, name: note.data.title }];
+const nodes = [{ id: note.id, name: note.data.title }];
 const links: { source: string; target: string }[] = [];
 
-const matches = note.body.match(/\[\[(.*?)\]\]/g);
+const matches = note.body?.match(/\[\[(.*?)\]\]/g);
 if (matches) {
   for (const link of matches) {
     const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
     const targetSlug = slugMap.get(targetName);
     if (targetSlug) {
       if (!nodes.find(n => n.id === targetSlug)) {
-        const targetNote = allNotes.find(n => n.slug === targetSlug);
+        const targetNote = allNotes.find(n => n.id === targetSlug);
         nodes.push({ id: targetSlug, name: targetNote?.data.title || targetName });
       }
-      links.push({ source: note.slug, target: targetSlug });
+      links.push({ source: note.id, target: targetSlug });
     }
   }
 }
 
 // 构建反向链接
-const backlinks = buildBacklinks(allNotes, note.slug, slugMap);
+const backlinks = buildBacklinks(allNotes, note.id, slugMap);
 
-// 获取 headings（从渲染后的 HTML 提取）
-const headings = note.headings
+// headings 从 render() 返回值获取
+const tocHeadings = headings
   ?.filter((h: any) => h.depth === 2 || h.depth === 3)
   .map((h: any) => ({ depth: h.depth, slug: h.slug, text: h.text })) || [];
 
@@ -673,11 +719,11 @@ const graphData = { nodes, links };
 <Layout title={note.data.title}>
   <PageLayout
     title={note.data.title}
-    currentSlug={note.slug}
-    headings={headings}
+    currentSlug={note.id}
+    headings={tocHeadings}
     backlinks={backlinks}
     graphData={graphData}
-    currentId={note.slug}
+    currentId={note.id}
   >
     <Content />
   </PageLayout>
@@ -693,21 +739,21 @@ import type { CollectionEntry } from 'astro:content';
 
 export function buildBacklinks(
   allNotes: CollectionEntry<'notes'>[],
-  currentSlug: string,
+  currentId: string,
   slugMap: Map<string, string>
 ): { slug: string; title: string }[] {
   const results: { slug: string; title: string }[] = [];
 
   for (const note of allNotes) {
-    if (note.slug === currentSlug) continue;
-    const matches = note.body.match(/\[\[(.*?)\]\]/g);
+    if (note.id === currentId) continue;
+    const matches = note.body?.match(/\[\[(.*?)\]\]/g);
     if (!matches) continue;
 
     for (const link of matches) {
       const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
       const targetSlug = slugMap.get(targetName);
-      if (targetSlug === currentSlug) {
-        results.push({ slug: note.slug, title: note.data.title });
+      if (targetSlug === currentId) {
+        results.push({ slug: note.id, title: note.data.title });
         break;
       }
     }
@@ -767,7 +813,7 @@ export function buildNavTree(notes: CollectionEntry<'notes'>[]): NavItem[] {
   const tree: Map<string, NavItem> = new Map();
 
   for (const note of notes) {
-    const parts = note.slug.split('/');
+    const parts = note.id.split('/');
     const category = parts[0];
 
     if (!tree.has(category)) {
@@ -777,7 +823,7 @@ export function buildNavTree(notes: CollectionEntry<'notes'>[]): NavItem[] {
     const node = tree.get(category)!;
     node.children!.push({
       name: note.data.title,
-      slug: note.slug,
+      slug: note.id,
       order: note.data.order,
     });
   }
@@ -1130,22 +1176,21 @@ import Layout from '../layouts/Layout.astro';
 
 const allNotes = await getCollection('notes');
 const slugMap = await buildSlugMap();
-const existingSlugs = new Set(allNotes.map(n => n.slug));
 
 const nodes = allNotes.map(n => ({
-  id: n.slug,
+  id: n.id,
   name: n.data.title,
 }));
 
 const links: { source: string; target: string }[] = [];
 allNotes.forEach(source => {
-  const matches = source.body.match(/\[\[(.*?)\]\]/g);
+  const matches = source.body?.match(/\[\[(.*?)\]\]/g);
   if (matches) {
     matches.forEach(link => {
       const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
       const targetSlug = slugMap.get(targetName);
       if (targetSlug) {
-        links.push({ source: source.slug, target: targetSlug });
+        links.push({ source: source.id, target: targetSlug });
       }
     });
   }
@@ -1326,18 +1371,47 @@ Create `src/components/SearchDialog.astro`:
 </script>
 ```
 
-- [ ] **Step 4: 在 Sidebar 中绑定搜索按钮**
+- [ ] **Step 4: 集成搜索触发按钮和弹窗**
 
-在 `src/components/Sidebar.astro` 的 `<script>` 或全局中添加：
+在 `src/components/Sidebar.astro` 底部添加 `<script>` 标签：
 
-```javascript
-document.getElementById('search-trigger')?.addEventListener('click', () => {
-  document.getElementById('search-dialog')!.style.display = 'flex';
-  document.getElementById('search-input')?.focus();
-});
+```astro
+<script>
+  document.getElementById('search-trigger')?.addEventListener('click', () => {
+    const dialog = document.getElementById('search-dialog')!;
+    dialog.style.display = 'flex';
+    document.getElementById('search-input')?.focus();
+  });
+</script>
 ```
 
-将 SearchDialog 组件添加到 Layout.astro 的 body 底部。
+Modify `src/layouts/Layout.astro` — 在 `<body>` 的 `<slot />` 之后引入 SearchDialog：
+
+```astro
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} - 知识库</title>
+  </head>
+  <body>
+    <slot />
+    <SearchDialog />
+  </body>
+</html>
+```
+
+注意：需要在 Layout.astro 的 frontmatter 中添加 `import SearchDialog from '../components/SearchDialog.astro';`。
 
 - [ ] **Step 5: 验证搜索**
 
