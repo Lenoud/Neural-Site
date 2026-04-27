@@ -41,7 +41,7 @@ const base = import.meta.env.BASE_URL;
   async function initSearch(basePath: string) {
     if (!pagefindInstance) {
       pagefindInstance = await import(`${basePath}pagefind/pagefind.js`);
-      await pagefindInstance.init();
+      await pagefindInstance.init({ baseUrl: basePath });
     }
     return pagefindInstance;
   }
