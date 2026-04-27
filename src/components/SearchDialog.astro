@@ -73,11 +73,11 @@
     const query = input.value.trim();
     if (!query) { results.innerHTML = ''; return; }
 
-    const response = await search(query);
+    const response = await search.search(query);
     const html = await Promise.all(
       response.results.slice(0, 10).map(async (r: any) => {
         const data = await r.data();
-        return `<li><a href="${r.url}">${data.meta?.title || r.url}</a></li>`;
+        return `<li><a href="${data.url}">${data.meta?.title || data.url}</a></li>`;
       })
     );
     results.innerHTML = html.join('');
