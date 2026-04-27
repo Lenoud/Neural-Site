@@ -64,5 +64,6 @@ const html = renderTree(items, 0);
   }
   .nav-folder > summary:hover { background: var(--bg-hover); }
   .nav-folder > summary::marker { content: ''; }
-  .arrow { font-size: 10px; }
+  .nav-folder > summary::-webkit-details-marker { display: none; }
+  .arrow { font-size: 10px; margin-right: 4px; }
 </style>
