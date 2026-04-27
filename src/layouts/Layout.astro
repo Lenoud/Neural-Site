@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import SearchDialog from '../components/SearchDialog.astro';
 
 interface Props {
   title: string;
@@ -16,5 +17,6 @@ const { title } = Astro.props;
   </head>
   <body>
     <slot />
+    <SearchDialog />
   </body>
 </html>

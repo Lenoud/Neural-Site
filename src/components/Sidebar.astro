@@ -43,3 +43,11 @@ const tree = buildNavTree(allNotes);
   .search-trigger:hover { border-color: var(--accent); }
   .sidebar-nav { flex: 1; overflow-y: auto; }
 </style>
+
+<script>
+  document.getElementById('search-trigger')?.addEventListener('click', () => {
+    const dialog = document.getElementById('search-dialog')!;
+    dialog.style.display = 'flex';
+    document.getElementById('search-input')?.focus();
+  });
+</script>

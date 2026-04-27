@@ -1,0 +1,85 @@
+---
+---
+
+<div id="search-dialog" class="search-overlay" style="display:none">
+  <div class="search-container">
+    <input type="text" id="search-input" placeholder="搜索文档..." />
+    <ul id="search-results"></ul>
+  </div>
+</div>
+
+<style>
+  .search-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.6);
+    display: flex; justify-content: center; padding-top: 120px;
+  }
+  .search-container {
+    width: 560px; max-height: 400px;
+    background: var(--bg-sidebar); border-radius: 8px;
+    overflow: hidden; border: 1px solid var(--border-color);
+  }
+  #search-input {
+    width: 100%; padding: 14px 18px;
+    background: transparent; border: none; border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary); font-size: 16px; outline: none;
+  }
+  #search-results {
+    list-style: none; max-height: 340px; overflow-y: auto;
+  }
+  #search-results li a {
+    display: block; padding: 10px 18px;
+    color: var(--text-secondary); text-decoration: none;
+  }
+  #search-results li a:hover { background: var(--bg-hover); }
+</style>
+
+<script>
+  let pagefindInstance: any = null;
+
+  async function initSearch() {
+    if (!pagefindInstance) {
+      pagefindInstance = await import('/pagefind/pagefind.js');
+      await pagefindInstance.init();
+    }
+    return pagefindInstance;
+  }
+
+  const overlay = document.getElementById('search-dialog')!;
+  const input = document.getElementById('search-input') as HTMLInputElement;
+  const results = document.getElementById('search-results')!;
+
+  document.addEventListener('keydown', async (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      overlay.style.display = 'flex';
+      input.focus();
+    }
+    if (e.key === 'Escape') {
+      overlay.style.display = 'none';
+      input.value = '';
+      results.innerHTML = '';
+    }
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.style.display = 'none';
+    }
+  });
+
+  input.addEventListener('input', async () => {
+    const search = await initSearch();
+    const query = input.value.trim();
+    if (!query) { results.innerHTML = ''; return; }
+
+    const response = await search(query);
+    const html = await Promise.all(
+      response.results.slice(0, 10).map(async (r: any) => {
+        const data = await r.data();
+        return `<li><a href="${r.url}">${data.meta?.title || r.url}</a></li>`;
+      })
+    );
+    results.innerHTML = html.join('');
+  });
+</script>

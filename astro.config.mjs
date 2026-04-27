@@ -34,4 +34,11 @@ export default defineConfig({
   markdown: {
     remarkPlugins: [[remarkWikilinks, slugMap]],
   },
+  vite: {
+    build: {
+      rollupOptions: {
+        external: ['/pagefind/pagefind.js'],
+      },
+    },
+  },
 });
