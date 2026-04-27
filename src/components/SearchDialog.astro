@@ -1,7 +1,8 @@
 ---
+const base = import.meta.env.BASE_URL;
 ---
 
-<div id="search-dialog" class="search-overlay" style="display:none">
+<div id="search-dialog" class="search-overlay" style="display:none" data-base={base}>
   <div class="search-container">
     <input type="text" id="search-input" placeholder="搜索文档..." />
     <ul id="search-results"></ul>
@@ -37,15 +38,16 @@
 <script>
   let pagefindInstance: any = null;
 
-  async function initSearch() {
+  async function initSearch(basePath: string) {
     if (!pagefindInstance) {
-      pagefindInstance = await import('/pagefind/pagefind.js');
+      pagefindInstance = await import(`${basePath}pagefind/pagefind.js`);
       await pagefindInstance.init();
     }
     return pagefindInstance;
   }
 
   const overlay = document.getElementById('search-dialog')!;
+  const basePath = overlay.dataset.base || '/';
   const input = document.getElementById('search-input') as HTMLInputElement;
   const results = document.getElementById('search-results')!;
 
@@ -69,7 +71,7 @@
   });
 
   input.addEventListener('input', async () => {
-    const search = await initSearch();
+    const search = await initSearch(basePath);
     const query = input.value.trim();
     if (!query) { results.innerHTML = ''; return; }
 

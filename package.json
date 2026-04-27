@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && npx pagefind --site dist --force-language zh",
+    "build": "astro build && node scripts/pagefind.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },

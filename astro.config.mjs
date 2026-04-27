@@ -37,17 +37,54 @@ function buildSlugIndexFromFS() {
   return { byPath, byName };
 }
 
+// 构建图片文件索引，支持 Obsidian 的 ![[image.png]] 语法
+const imageExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp', '.ico']);
+function buildImageIndex() {
+  const notesDir = path.resolve('./src/content/notes');
+  const attachmentsDir = path.resolve('./attachments');
+  const byPath = new Map();
+  const byName = new Map();
+
+  function walk(dir, root) {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath, root);
+      } else {
+        const ext = path.extname(entry.name).toLowerCase();
+        if (imageExtensions.has(ext)) {
+          const relativeToRoot = path.relative(root, fullPath);
+
+          byPath.set(relativeToRoot, relativeToRoot);
+          byPath.set(relativeToRoot.toLowerCase(), relativeToRoot);
+
+          const list = byName.get(entry.name.toLowerCase()) || [];
+          list.push(relativeToRoot);
+          byName.set(entry.name.toLowerCase(), list);
+        }
+      }
+    }
+  }
+
+  walk(notesDir, notesDir);
+  walk(attachmentsDir, attachmentsDir);
+  return { byPath, byName };
+}
+
+const imageIndex = buildImageIndex();
+
 const { byPath, byName } = buildSlugIndexFromFS();
 
 export default defineConfig({
   base,
   markdown: {
-    remarkPlugins: [[remarkWikilinks, { byPath, byName, base }]],
+    remarkPlugins: [[remarkWikilinks, { byPath, byName, base, imageIndex }]],
   },
   vite: {
     build: {
       rollupOptions: {
-        external: ['/pagefind/pagefind.js'],
+        external: ['/pagefind/pagefind.js', `${base}pagefind/pagefind.js`],
       },
     },
   },
