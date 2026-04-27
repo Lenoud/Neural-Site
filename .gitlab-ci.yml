@@ -1,0 +1,16 @@
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  only:
+    - main
+  image: node:22
+  before_script:
+    - 'which rsync || (apt-get update -qq && apt-get install -y -qq rsync)'
+  script:
+    - npm ci
+    - npm run build
+    - rsync -az --delete dist/ ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}
+  tags:
+    - docker
