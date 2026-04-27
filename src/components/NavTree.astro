@@ -41,8 +41,9 @@ const html = renderTree(items, 0);
 
 <ul class="nav-list" set:html={html} />
 
-<style>
+<style is:global>
   .nav-list { list-style: none; }
+  .nav-list .nav-list { list-style: none; }
   .nav-link {
     display: block;
     padding: 6px 12px;
@@ -54,6 +55,8 @@ const html = renderTree(items, 0);
   .nav-link:hover { background: var(--bg-hover); color: var(--text-primary); }
   .nav-link.active { background: var(--bg-hover); color: var(--text-primary); }
   .nav-folder > summary {
+    display: flex;
+    align-items: center;
     list-style: none;
     cursor: pointer;
     padding: 8px 12px;
@@ -62,8 +65,8 @@ const html = renderTree(items, 0);
     border-radius: 4px;
     transition: background 0.15s;
   }
-  .nav-folder > summary:hover { background: var(--bg-hover); }
   .nav-folder > summary::marker { content: ''; }
   .nav-folder > summary::-webkit-details-marker { display: none; }
+  .nav-folder > summary:hover { background: var(--bg-hover); }
   .arrow { font-size: 10px; margin-right: 4px; }
 </style>
