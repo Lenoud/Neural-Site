@@ -2,7 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
 import PageLayout from '../../components/PageLayout.astro';
-import { buildSlugMap } from '../../utils/slug-map';
+import { buildSlugIndex, resolveWikilink } from '../../utils/slug-map';
 import { buildBacklinks } from '../../utils/backlinks';
 
 export async function getStaticPaths() {
@@ -16,7 +16,7 @@ export async function getStaticPaths() {
 const { note } = Astro.props;
 const { Content, headings } = await render(note);
 
-const slugMap = await buildSlugMap();
+const { byPath, byName } = await buildSlugIndex();
 const allNotes = await getCollection('notes');
 
 const nodes = [{ id: note.id, name: note.data.title }];
@@ -26,18 +26,18 @@ const matches = note.body?.match(/\[\[(.*?)\]\]/g);
 if (matches) {
   for (const link of matches) {
     const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
-    const targetSlug = slugMap.get(targetName);
-    if (targetSlug) {
-      if (!nodes.find(n => n.id === targetSlug)) {
-        const targetNote = allNotes.find(n => n.id === targetSlug);
-        nodes.push({ id: targetSlug, name: targetNote?.data.title || targetName });
+    const targetId = resolveWikilink(targetName, byPath, byName, note.id);
+    if (targetId) {
+      if (!nodes.find(n => n.id === targetId)) {
+        const targetNote = allNotes.find(n => n.id === targetId);
+        nodes.push({ id: targetId, name: targetNote?.data.title || targetName });
       }
-      links.push({ source: note.id, target: targetSlug });
+      links.push({ source: note.id, target: targetId });
     }
   }
 }
 
-const backlinks = buildBacklinks(allNotes, note.id, slugMap);
+const backlinks = buildBacklinks(allNotes, note.id, byPath, byName);
 
 const tocHeadings = headings
   ?.filter((h: any) => h.depth === 2 || h.depth === 3)

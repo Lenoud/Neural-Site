@@ -1,7 +1,18 @@
 import { visit } from 'unist-util-visit';
 
-export function remarkWikilinks(slugMap: Map<string, string>) {
-  return (tree: any) => {
+/**
+ * remark 插件：将 [[wikilinks]] 转为 <a> 标签
+ * 支持路径匹配、同名消歧、别名语法
+ */
+export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; byName: Map<string, any[]> }) {
+  const { byPath, byName } = options;
+  return (tree: any, file: any) => {
+    // 获取当前文档路径，用于同组优先匹配
+    const currentPath = file?.history?.[0]
+      ?.replace(/.*\/src\/content\/notes\//, '')
+      ?.replace(/\.md$/, '')
+      ?.toLowerCase() || '';
+
     visit(tree, 'text', (node: any, index: number | undefined, parent: any) => {
       if (index === undefined || !parent) return;
 
@@ -16,14 +27,38 @@ export function remarkWikilinks(slugMap: Map<string, string>) {
           parts.push({ type: 'text', value: text.slice(lastIndex, match.index) });
         }
 
-        const target = match[1].split('|')[0];
-        const slug = slugMap.get(target);
-        const alias = match[1].includes('|') ? match[1].split('|')[1] : target;
+        const raw = match[1];
+        const target = raw.split('|')[0];
+        const alias = raw.includes('|') ? raw.split('|')[1] : target;
 
-        if (slug) {
+        // 解析：路径优先 → 文件名 → 同组优先 → 兜底
+        let resolvedId: string | null = null;
+
+        // 精确路径匹配
+        const pathMatch = byPath.get(target.toLowerCase());
+        if (pathMatch) {
+          resolvedId = pathMatch.id;
+        } else {
+          // 文件名匹配
+          const candidates = byName.get(target.toLowerCase());
+          if (candidates && candidates.length > 0) {
+            if (candidates.length === 1) {
+              resolvedId = candidates[0].id;
+            } else if (currentPath) {
+              // 同组优先
+              const currentDir = currentPath.split('/').slice(0, -1).join('/');
+              const sameGroup = candidates.find((c: any) => c.id.startsWith(currentDir + '/'));
+              resolvedId = sameGroup ? sameGroup.id : candidates[0].id;
+            } else {
+              resolvedId = candidates[0].id;
+            }
+          }
+        }
+
+        if (resolvedId) {
           parts.push({
             type: 'link',
-            url: `/notes/${slug}`,
+            url: `/notes/${resolvedId}`,
             children: [{ type: 'text', value: alias }],
           });
         } else {

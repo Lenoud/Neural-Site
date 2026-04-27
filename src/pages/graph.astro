@@ -1,10 +1,10 @@
 ---
 import { getCollection } from 'astro:content';
-import { buildSlugMap } from '../utils/slug-map';
+import { buildSlugIndex, resolveWikilink } from '../utils/slug-map';
 import Layout from '../layouts/Layout.astro';
 
 const allNotes = await getCollection('notes');
-const slugMap = await buildSlugMap();
+const { byPath, byName } = await buildSlugIndex();
 
 const nodes = allNotes.map(n => ({
   id: n.id,
@@ -17,9 +17,9 @@ allNotes.forEach(source => {
   if (matches) {
     matches.forEach(link => {
       const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
-      const targetSlug = slugMap.get(targetName);
-      if (targetSlug) {
-        links.push({ source: source.id, target: targetSlug });
+      const targetId = resolveWikilink(targetName, byPath, byName, source.id);
+      if (targetId) {
+        links.push({ source: source.id, target: targetId });
       }
     });
   }
