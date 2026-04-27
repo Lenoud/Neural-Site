@@ -14,9 +14,12 @@ function buildSlugMapFromFS() {
       if (entry.isDirectory()) {
         walk(fullPath);
       } else if (entry.name.endsWith('.md')) {
-        const relativePath = path.relative(notesDir, fullPath).replace(/\.md$/, '');
+        // Astro glob loader 会将 id 转为小写
+        const relativePath = path.relative(notesDir, fullPath).replace(/\.md$/, '').toLowerCase();
         const fileName = path.basename(entry.name, '.md');
+        // 原始文件名 → 小写 id，用于 [[API规范]] 查找 → api规范
         map.set(fileName, relativePath);
+        map.set(fileName.toLowerCase(), relativePath);
       }
     }
   }

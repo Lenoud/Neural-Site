@@ -1,0 +1,60 @@
+---
+import { getCollection, render } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import PageLayout from '../../components/PageLayout.astro';
+import { buildSlugMap } from '../../utils/slug-map';
+import { buildBacklinks } from '../../utils/backlinks';
+
+export async function getStaticPaths() {
+  const notes = await getCollection('notes');
+  return notes.map(note => ({
+    params: { slug: note.id },
+    props: { note },
+  }));
+}
+
+const { note } = Astro.props;
+const { Content, headings } = await render(note);
+
+const slugMap = await buildSlugMap();
+const allNotes = await getCollection('notes');
+
+const nodes = [{ id: note.id, name: note.data.title }];
+const links: { source: string; target: string }[] = [];
+
+const matches = note.body?.match(/\[\[(.*?)\]\]/g);
+if (matches) {
+  for (const link of matches) {
+    const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
+    const targetSlug = slugMap.get(targetName);
+    if (targetSlug) {
+      if (!nodes.find(n => n.id === targetSlug)) {
+        const targetNote = allNotes.find(n => n.id === targetSlug);
+        nodes.push({ id: targetSlug, name: targetNote?.data.title || targetName });
+      }
+      links.push({ source: note.id, target: targetSlug });
+    }
+  }
+}
+
+const backlinks = buildBacklinks(allNotes, note.id, slugMap);
+
+const tocHeadings = headings
+  ?.filter((h: any) => h.depth === 2 || h.depth === 3)
+  .map((h: any) => ({ depth: h.depth, slug: h.slug, text: h.text })) || [];
+
+const graphData = { nodes, links };
+---
+
+<Layout title={note.data.title}>
+  <PageLayout
+    title={note.data.title}
+    currentSlug={note.id}
+    headings={tocHeadings}
+    backlinks={backlinks}
+    graphData={graphData}
+    currentId={note.id}
+  >
+    <Content />
+  </PageLayout>
+</Layout>
