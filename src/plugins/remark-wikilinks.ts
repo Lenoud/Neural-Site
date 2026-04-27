@@ -1,13 +1,43 @@
 import { visit } from 'unist-util-visit';
 
 /**
- * remark 插件：将 [[wikilinks]] 转为 <a> 标签
- * 支持路径匹配、同名消歧、别名语法
+ * 解析 wikilink 内部语法
+ * [[target]]            → { target, heading, alias }
+ * [[target#heading]]    → { target, heading, alias }
+ * [[#heading]]          → { target: '', heading, alias }  (当前页)
+ * [[target|alias]]      → { target, heading: '', alias }
+ * [[target#heading|a]]  → { target, heading, alias: 'a' }
  */
+function parseWikilink(raw: string) {
+  let alias = raw;
+  let targetAndHeading = raw;
+
+  if (raw.includes('|')) {
+    const pipeIdx = raw.indexOf('|');
+    alias = raw.slice(pipeIdx + 1);
+    targetAndHeading = raw.slice(0, pipeIdx);
+  }
+
+  let target = targetAndHeading;
+  let heading = '';
+
+  if (targetAndHeading.includes('#')) {
+    const hashIdx = targetAndHeading.indexOf('#');
+    target = targetAndHeading.slice(0, hashIdx);
+    heading = targetAndHeading.slice(hashIdx + 1);
+  }
+
+  // 默认 alias
+  if (alias === targetAndHeading) {
+    alias = heading ? heading : target.split('/').pop() || target;
+  }
+
+  return { target, heading, alias };
+}
+
 export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; byName: Map<string, any[]> }) {
   const { byPath, byName } = options;
   return (tree: any, file: any) => {
-    // 获取当前文档路径，用于同组优先匹配
     const currentPath = file?.history?.[0]
       ?.replace(/.*\/src\/content\/notes\//, '')
       ?.replace(/\.md$/, '')
@@ -27,25 +57,31 @@ export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; 
           parts.push({ type: 'text', value: text.slice(lastIndex, match.index) });
         }
 
-        const raw = match[1];
-        const target = raw.split('|')[0];
-        const alias = raw.includes('|') ? raw.split('|')[1] : target;
+        const { target, heading, alias } = parseWikilink(match[1]);
 
-        // 解析：路径优先 → 文件名 → 同组优先 → 兜底
+        // [[#heading]] — 当前页内跳转
+        if (!target && heading) {
+          parts.push({
+            type: 'link',
+            url: `#${heading}`,
+            children: [{ type: 'text', value: alias }],
+          });
+          lastIndex = regex.lastIndex;
+          continue;
+        }
+
+        // 解析文档链接
         let resolvedId: string | null = null;
 
-        // 精确路径匹配
         const pathMatch = byPath.get(target.toLowerCase());
         if (pathMatch) {
           resolvedId = pathMatch.id;
         } else {
-          // 文件名匹配
           const candidates = byName.get(target.toLowerCase());
           if (candidates && candidates.length > 0) {
             if (candidates.length === 1) {
               resolvedId = candidates[0].id;
             } else if (currentPath) {
-              // 同组优先
               const currentDir = currentPath.split('/').slice(0, -1).join('/');
               const sameGroup = candidates.find((c: any) => c.id.startsWith(currentDir + '/'));
               resolvedId = sameGroup ? sameGroup.id : candidates[0].id;
@@ -56,9 +92,10 @@ export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; 
         }
 
         if (resolvedId) {
+          const url = heading ? `/notes/${resolvedId}#${heading}` : `/notes/${resolvedId}`;
           parts.push({
             type: 'link',
-            url: `/notes/${resolvedId}`,
+            url,
             children: [{ type: 'text', value: alias }],
           });
         } else {
