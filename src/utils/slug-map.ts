@@ -6,6 +6,9 @@ export interface SlugEntry {
   fullPath: string;    // 原始完整路径
 }
 
+let cachedByPath: Map<string, SlugEntry> | null = null;
+let cachedByName: Map<string, SlugEntry[]> | null = null;
+
 /**
  * 构建 slug 索引，支持三种匹配模式（与 Obsidian 一致）：
  * 1. 路径精确匹配：[[前端组/技术文档/API规范]]
@@ -16,6 +19,10 @@ export async function buildSlugIndex(): Promise<{
   byPath: Map<string, SlugEntry>;
   byName: Map<string, SlugEntry[]>;
 }> {
+  if (cachedByPath && cachedByName) {
+    return { byPath: cachedByPath, byName: cachedByName };
+  }
+
   const notes = await getCollection('notes');
   const byPath = new Map<string, SlugEntry>();
   const byName = new Map<string, SlugEntry[]>();
@@ -44,6 +51,8 @@ export async function buildSlugIndex(): Promise<{
     byName.set(entry.fileName, list);
   }
 
+  cachedByPath = byPath;
+  cachedByName = byName;
   return { byPath, byName };
 }
 

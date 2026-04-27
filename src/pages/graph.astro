@@ -28,6 +28,12 @@ allNotes.forEach(source => {
 const graphData = { nodes, links };
 ---
 
+{nodes.length > 2000 && (
+  <p style="color: var(--text-muted); padding: 8px 24px; font-size: 13px;">
+    节点过多（{nodes.length}），已筛选连接最密集的 2000 个节点展示。
+  </p>
+)}
+
 <Layout title="全局图谱">
   <div style="display: flex; flex-direction: column; height: 100vh;">
     <header style="padding: 16px 24px; display: flex; align-items: center; gap: 16px;">
@@ -42,7 +48,26 @@ const graphData = { nodes, links };
   import ForceGraph from 'force-graph';
 
   const el = document.getElementById('global-graph')!;
-  const data = JSON.parse(el.dataset.graph || '{}');
+  const raw = JSON.parse(el.dataset.graph || '{}');
+
+  const MAX_NODES = 2000;
+  let data = raw;
+  if (raw.nodes.length > MAX_NODES) {
+    const linkCounts = new Map<string, number>();
+    raw.links.forEach((l: any) => {
+      linkCounts.set(l.source, (linkCounts.get(l.source) || 0) + 1);
+      linkCounts.set(l.target, (linkCounts.get(l.target) || 0) + 1);
+    });
+    const sorted = [...linkCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, MAX_NODES)
+      .map(([id]) => id);
+    const kept = new Set(sorted);
+    data = {
+      nodes: raw.nodes.filter((n: any) => kept.has(n.id)),
+      links: raw.links.filter((l: any) => kept.has(l.source) && kept.has(l.target)),
+    };
+  }
 
   ForceGraph()(el)
     .graphData(data)
@@ -69,7 +94,8 @@ const graphData = { nodes, links };
     .linkWidth(1)
     .backgroundColor('#1e1e1e')
     .warmupTicks(50)
-    .cooldownTicks(200)
+    .cooldownTicks(100)
+    .d3AlphaDecay(0.05)
     .onNodeClick((node: any) => {
       window.location.href = `${import.meta.env.BASE_URL}notes/${node.id}`;
     });

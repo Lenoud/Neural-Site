@@ -3,7 +3,7 @@ import { getCollection, render } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
 import PageLayout from '../../components/PageLayout.astro';
 import { buildSlugIndex, resolveWikilink } from '../../utils/slug-map';
-import { buildBacklinks } from '../../utils/backlinks';
+import { getBacklinkIndex } from '../../utils/backlink-cache';
 
 export async function getStaticPaths() {
   const notes = await getCollection('notes');
@@ -37,7 +37,19 @@ if (matches) {
   }
 }
 
-const backlinks = buildBacklinks(allNotes, note.id, byPath, byName);
+const MAX_LOCAL_GRAPH_NODES = 30;
+if (nodes.length > MAX_LOCAL_GRAPH_NODES) {
+  const kept = new Set([note.id, ...nodes.slice(1, MAX_LOCAL_GRAPH_NODES).map(n => n.id)]);
+  const filteredNodes = nodes.filter(n => kept.has(n.id));
+  const filteredLinks = links.filter(l => kept.has(l.source) && kept.has(l.target));
+  nodes.length = 0;
+  nodes.push(...filteredNodes);
+  links.length = 0;
+  links.push(...filteredLinks);
+}
+
+const backlinkIndex = await getBacklinkIndex();
+const backlinks = backlinkIndex.get(note.id) || [];
 
 const tocHeadings = headings
   ?.filter((h: any) => h.depth === 2 || h.depth === 3)
