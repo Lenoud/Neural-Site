@@ -24,7 +24,7 @@ function renderTree(items: NavItem[], depth: number): string {
       const isOpen = containsCurrent(item);
       return `<li>
         <details ${isOpen ? 'open' : ''} class="nav-folder" style="padding-left:${depth * 12}px">
-          <summary class="nav-category"><span class="arrow">${isOpen ? '▼' : '▶'}</span> ${item.name}</summary>
+          <summary class="nav-category">${item.name}</summary>
           <ul class="nav-list">${renderTree(item.children, depth + 1)}</ul>
         </details>
       </li>`;
@@ -55,9 +55,6 @@ const html = renderTree(items, 0);
   .nav-link:hover { background: var(--bg-hover); color: var(--text-primary); }
   .nav-link.active { background: var(--bg-hover); color: var(--text-primary); }
   .nav-folder > summary {
-    display: flex;
-    align-items: center;
-    list-style: none;
     cursor: pointer;
     padding: 8px 12px;
     color: var(--text-muted);
@@ -65,8 +62,5 @@ const html = renderTree(items, 0);
     border-radius: 4px;
     transition: background 0.15s;
   }
-  .nav-folder > summary::marker { content: ''; }
-  .nav-folder > summary::-webkit-details-marker { display: none; }
   .nav-folder > summary:hover { background: var(--bg-hover); }
-  .arrow { font-size: 10px; margin-right: 4px; }
 </style>
