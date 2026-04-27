@@ -1,0 +1,55 @@
+---
+interface Props {
+  graphData: {
+    nodes: { id: string; name: string }[];
+    links: { source: string; target: string }[];
+  };
+  currentId: string;
+}
+const { graphData, currentId } = Astro.props;
+---
+
+<section class="graph-section">
+  <h4>Interactive Graph</h4>
+  <div id="local-graph" data-graph={JSON.stringify(graphData)} data-current={currentId}></div>
+  <a href="/graph" class="expand-link">Expand →</a>
+</section>
+
+<style>
+  .graph-section { margin-bottom: 24px; }
+  #local-graph { width: 100%; height: 200px; }
+  .expand-link {
+    display: inline-block;
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+</style>
+
+<script>
+  import ForceGraph from 'force-graph';
+
+  document.querySelectorAll('#local-graph').forEach(container => {
+    const el = container as HTMLElement;
+    const data = JSON.parse(el.dataset.graph || '{}');
+    const currentId = el.dataset.current;
+
+    ForceGraph()(el)
+      .graphData(data)
+      .nodeId('id')
+      .nodeLabel('name')
+      .nodeColor((node: any) => node.id === currentId ? '#6ab0e6' : '#666666')
+      .nodeVal((node: any) => node.id === currentId ? 3 : 1)
+      .linkColor(() => 'rgba(136,136,136,0.3)')
+      .linkWidth(1)
+      .backgroundColor('transparent')
+      .width(el.offsetWidth)
+      .height(200)
+      .enableNodeDrag(false)
+      .onNodeClick((node: any) => {
+        if (node.id !== currentId) {
+          window.location.href = `/notes/${node.id}`;
+        }
+      });
+  });
+</script>
