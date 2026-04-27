@@ -79,8 +79,8 @@ for (const repo of repos) {
     cloneOrPull(repo.url, repo.branch || 'main', cachePath);
     copyContent(cachePath, repo.dir);
   } catch (err) {
-    console.error(`  Failed to sync ${repo.dir}:`, err.message);
-    process.exit(1);
+    console.warn(`  Warning: Failed to sync ${repo.dir}: ${err.message}`);
+    console.warn(`  Skipping ${repo.dir}.`);
   }
 }
 

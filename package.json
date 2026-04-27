@@ -7,10 +7,9 @@
   },
   "scripts": {
     "sync": "node scripts/sync-content.mjs",
-    "predev": "npm run sync",
-    "dev": "astro dev",
-    "prebuild": "npm run sync",
+    "dev": "node scripts/sync-content.mjs && astro dev",
     "build": "astro build && node scripts/pagefind.mjs",
+    "build:with-sync": "node scripts/sync-content.mjs && astro build && node scripts/pagefind.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
