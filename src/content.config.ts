@@ -5,7 +5,7 @@ import { z } from 'astro/zod';
 const notes = defineCollection({
   loader: glob({ pattern: "**/*.md", base: "./src/content/notes" }),
   schema: z.object({
-    title: z.string(),
+    title: z.string().optional(),
     tags: z.array(z.string()).optional(),
     order: z.number().optional(),
   }),
