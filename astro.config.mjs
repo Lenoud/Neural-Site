@@ -39,6 +39,7 @@ function buildSlugIndexFromFS() {
 const { byPath, byName } = buildSlugIndexFromFS();
 
 export default defineConfig({
+  base: '/Neural-Site/',
   markdown: {
     remarkPlugins: [[remarkWikilinks, { byPath, byName }]],
   },
