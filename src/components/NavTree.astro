@@ -13,7 +13,6 @@ interface Props {
 
 const { items, currentSlug = '' } = Astro.props;
 
-// 将树结构平铺为带缩进级别的列表，避免递归组件
 interface FlatItem {
   name: string;
   slug?: string;
@@ -22,13 +21,21 @@ interface FlatItem {
   isOpen: boolean;
 }
 
+function containsCurrent(item: NavItem): boolean {
+  if (item.slug === currentSlug) return true;
+  return item.children?.some(c => containsCurrent(c)) || false;
+}
+
 function flatten(items: NavItem[], depth: number): FlatItem[] {
   const result: FlatItem[] = [];
   for (const item of items) {
     if (item.children) {
-      const isOpen = item.children.some(c => c.slug === currentSlug);
+      const isOpen = containsCurrent(item);
       result.push({ name: item.name, depth, isCategory: true, isOpen });
-      result.push(...flatten(item.children, depth + 1));
+      if (isOpen) {
+        // 展开的目录才显示子项
+        result.push(...flatten(item.children, depth + 1));
+      }
     } else {
       result.push({ name: item.name, slug: item.slug, depth, isCategory: false, isOpen: false });
     }
@@ -37,14 +44,13 @@ function flatten(items: NavItem[], depth: number): FlatItem[] {
 }
 
 const flatItems = flatten(items, 0);
-let currentDetailsOpen = false;
 ---
 
 <ul class="nav-list">
   {flatItems.map(item => (
     <li style={`padding-left: ${item.depth * 12}px`}>
       {item.isCategory ? (
-        <div class="nav-category">
+        <div class:list={['nav-category', { collapsed: !item.isOpen }]}>
           <span class="arrow">{item.isOpen ? '▼' : '▶'}</span> {item.name}
         </div>
       ) : (
@@ -74,7 +80,6 @@ let currentDetailsOpen = false;
     padding: 8px 12px;
     color: var(--text-muted);
     font-size: 12px;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
   }
   .arrow { font-size: 10px; }
