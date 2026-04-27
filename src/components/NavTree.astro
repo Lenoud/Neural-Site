@@ -1,0 +1,81 @@
+---
+interface NavItem {
+  name: string;
+  slug?: string;
+  order?: number;
+  children?: NavItem[];
+}
+
+interface Props {
+  items: NavItem[];
+  currentSlug?: string;
+}
+
+const { items, currentSlug = '' } = Astro.props;
+
+// 将树结构平铺为带缩进级别的列表，避免递归组件
+interface FlatItem {
+  name: string;
+  slug?: string;
+  depth: number;
+  isCategory: boolean;
+  isOpen: boolean;
+}
+
+function flatten(items: NavItem[], depth: number): FlatItem[] {
+  const result: FlatItem[] = [];
+  for (const item of items) {
+    if (item.children) {
+      const isOpen = item.children.some(c => c.slug === currentSlug);
+      result.push({ name: item.name, depth, isCategory: true, isOpen });
+      result.push(...flatten(item.children, depth + 1));
+    } else {
+      result.push({ name: item.name, slug: item.slug, depth, isCategory: false, isOpen: false });
+    }
+  }
+  return result;
+}
+
+const flatItems = flatten(items, 0);
+let currentDetailsOpen = false;
+---
+
+<ul class="nav-list">
+  {flatItems.map(item => (
+    <li style={`padding-left: ${item.depth * 12}px`}>
+      {item.isCategory ? (
+        <div class="nav-category">
+          <span class="arrow">{item.isOpen ? '▼' : '▶'}</span> {item.name}
+        </div>
+      ) : (
+        <a
+          href={`/notes/${item.slug}`}
+          class:list={['nav-link', { active: item.slug === currentSlug }]}
+        >
+          {item.name}
+        </a>
+      )}
+    </li>
+  ))}
+</ul>
+
+<style>
+  .nav-list { list-style: none; }
+  .nav-link {
+    display: block;
+    padding: 6px 12px;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  .nav-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .nav-link.active { background: var(--bg-hover); color: var(--text-primary); }
+  .nav-category {
+    padding: 8px 12px;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .arrow { font-size: 10px; }
+</style>

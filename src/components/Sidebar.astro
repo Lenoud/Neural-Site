@@ -1,21 +1,45 @@
 ---
+import { getCollection } from 'astro:content';
+import { buildNavTree } from '../utils/nav-tree';
+import NavTree from './NavTree.astro';
+
 interface Props {
   currentSlug?: string;
 }
+
 const { currentSlug } = Astro.props;
+const allNotes = await getCollection('notes');
+const tree = buildNavTree(allNotes);
 ---
+
 <div class="sidebar-inner">
   <div class="sidebar-header">
     <a href="/" class="logo">知识库</a>
   </div>
+  <div class="sidebar-search">
+    <button class="search-trigger" id="search-trigger">🔍 搜索文档...</button>
+  </div>
   <nav class="sidebar-nav">
-    <p style="color: var(--text-muted); padding: 12px;">Loading...</p>
+    <NavTree items={tree} currentSlug={currentSlug} />
   </nav>
 </div>
 
 <style>
-  .sidebar-inner { padding: 16px 8px; height: 100%; }
+  .sidebar-inner { padding: 16px 8px; height: 100%; display: flex; flex-direction: column; }
   .sidebar-header { padding: 8px 12px; margin-bottom: 16px; }
   .logo { color: var(--text-primary); font-size: 18px; font-weight: 700; text-decoration: none; }
+  .sidebar-search { padding: 0 8px; margin-bottom: 12px; }
+  .search-trigger {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    text-align: left;
+    font-size: 13px;
+  }
+  .search-trigger:hover { border-color: var(--accent); }
   .sidebar-nav { flex: 1; overflow-y: auto; }
 </style>
