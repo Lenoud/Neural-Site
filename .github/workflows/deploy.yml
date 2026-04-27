@@ -29,7 +29,6 @@ jobs:
       - run: npm run build
         env:
           BASE_PATH: /Neural-Site/
-      - run: npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
