@@ -1,0 +1,9 @@
+{
+  "repos": [
+    {
+      "url": "https://git.skyrisai.com/yuzus/obsidian.git",
+      "branch": "develop",
+      "dir": "运维组"
+    }
+  ]
+}

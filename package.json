@@ -6,7 +6,10 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "sync": "node scripts/sync-content.mjs",
+    "predev": "npm run sync",
     "dev": "astro dev",
+    "prebuild": "npm run sync",
     "build": "astro build && node scripts/pagefind.mjs",
     "preview": "astro preview",
     "astro": "astro"
