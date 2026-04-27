@@ -13,4 +13,4 @@ deploy:
     - npm run build
     - rsync -az --delete dist/ ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}
   tags:
-    - docker
+    - doc
