@@ -1,0 +1,21 @@
+---
+interface Props {
+  currentSlug?: string;
+}
+const { currentSlug } = Astro.props;
+---
+<div class="sidebar-inner">
+  <div class="sidebar-header">
+    <a href="/" class="logo">知识库</a>
+  </div>
+  <nav class="sidebar-nav">
+    <p style="color: var(--text-muted); padding: 12px;">Loading...</p>
+  </nav>
+</div>
+
+<style>
+  .sidebar-inner { padding: 16px 8px; height: 100%; }
+  .sidebar-header { padding: 8px 12px; margin-bottom: 16px; }
+  .logo { color: var(--text-primary); font-size: 18px; font-weight: 700; text-decoration: none; }
+  .sidebar-nav { flex: 1; overflow-y: auto; }
+</style>
