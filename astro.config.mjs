@@ -3,7 +3,11 @@ import { remarkWikilinks } from './src/plugins/remark-wikilinks';
 import path from 'node:path';
 import fs from 'node:fs';
 
-// 配置阶段无法使用 getCollection，直接读文件系统构建索引
+// GitHub Pages 项目站点需要 base = /<repo-name>/
+// 本地开发和内部 Nginx 部署不需要前缀
+// 通过环境变量 BASE_PATH 控制，CI 中设置 BASE_PATH=/Neural-Site/
+const base = process.env.BASE_PATH || '/';
+
 function buildSlugIndexFromFS() {
   const notesDir = path.resolve('./src/content/notes');
   const byPath = new Map();
@@ -17,14 +21,11 @@ function buildSlugIndexFromFS() {
       } else if (entry.name.endsWith('.md')) {
         const relativePath = path.relative(notesDir, fullPath).replace(/\.md$/, '');
         const fileName = path.basename(entry.name, '.md');
-        // Astro glob loader 将 id 转小写
         const astroId = relativePath.toLowerCase();
 
-        // 按完整路径索引：原始大小写 + 小写
         byPath.set(relativePath, { id: astroId });
         byPath.set(relativePath.toLowerCase(), { id: astroId });
 
-        // 按文件名索引
         const list = byName.get(fileName.toLowerCase()) || [];
         list.push({ id: astroId });
         byName.set(fileName.toLowerCase(), list);
@@ -39,9 +40,9 @@ function buildSlugIndexFromFS() {
 const { byPath, byName } = buildSlugIndexFromFS();
 
 export default defineConfig({
-  base: '/Neural-Site/',
+  base,
   markdown: {
-    remarkPlugins: [[remarkWikilinks, { byPath, byName }]],
+    remarkPlugins: [[remarkWikilinks, { byPath, byName, base }]],
   },
   vite: {
     build: {

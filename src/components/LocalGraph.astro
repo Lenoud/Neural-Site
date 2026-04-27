@@ -63,7 +63,7 @@ const { graphData, currentId } = Astro.props;
       .enableNodeDrag(false)
       .onNodeClick((node: any) => {
         if (node.id !== currentId) {
-          window.location.href = `/notes/${node.id}`;
+          window.location.href = `${import.meta.env.BASE_URL}notes/${node.id}`;
         }
       });
   });

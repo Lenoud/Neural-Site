@@ -31,7 +31,7 @@ const graphData = { nodes, links };
 <Layout title="全局图谱">
   <div style="display: flex; flex-direction: column; height: 100vh;">
     <header style="padding: 16px 24px; display: flex; align-items: center; gap: 16px;">
-      <a href="/" style="color: #ccc;">← 返回</a>
+      <a href={`${import.meta.env.BASE_URL}`} style="color: #ccc;">← 返回</a>
       <h1 style="color: #fff; font-size: 18px; margin: 0;">Global Graph</h1>
     </header>
     <div id="global-graph" style="flex: 1;" data-graph={JSON.stringify(graphData)}></div>
@@ -71,6 +71,6 @@ const graphData = { nodes, links };
     .warmupTicks(50)
     .cooldownTicks(200)
     .onNodeClick((node: any) => {
-      window.location.href = `/notes/${node.id}`;
+      window.location.href = `${import.meta.env.BASE_URL}notes/${node.id}`;
     });
 </script>

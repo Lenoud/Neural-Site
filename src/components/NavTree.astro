@@ -12,6 +12,7 @@ interface Props {
 }
 
 const { items, currentSlug = '' } = Astro.props;
+const base = import.meta.env.BASE_URL;
 
 function containsCurrent(item: NavItem): boolean {
   if (item.slug === currentSlug) return true;
@@ -31,7 +32,7 @@ function renderTree(items: NavItem[], depth: number): string {
     }
     const isActive = item.slug === currentSlug;
     return `<li style="padding-left:${(depth + 1) * 12}px">
-      <a href="/notes/${item.slug}" class="nav-link${isActive ? ' active' : ''}">${item.name}</a>
+      <a href="${base}notes/${item.slug}" class="nav-link${isActive ? ' active' : ''}">${item.name}</a>
     </li>`;
   }).join('');
 }

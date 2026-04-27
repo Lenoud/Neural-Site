@@ -35,8 +35,8 @@ function parseWikilink(raw: string) {
   return { target, heading, alias };
 }
 
-export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; byName: Map<string, any[]> }) {
-  const { byPath, byName } = options;
+export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; byName: Map<string, any[]>; base?: string }) {
+  const { byPath, byName, base = '/' } = options;
   return (tree: any, file: any) => {
     const currentPath = file?.history?.[0]
       ?.replace(/.*\/src\/content\/notes\//, '')
@@ -92,7 +92,7 @@ export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; 
         }
 
         if (resolvedId) {
-          const url = heading ? `/notes/${resolvedId}#${heading}` : `/notes/${resolvedId}`;
+          const url = heading ? `${base}notes/${resolvedId}#${heading}` : `${base}notes/${resolvedId}`;
           parts.push({
             type: 'link',
             url,
