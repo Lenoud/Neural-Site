@@ -82,10 +82,5 @@ export default defineConfig({
     remarkPlugins: [[remarkWikilinks, { byPath, byName, base, imageIndex }]],
   },
   vite: {
-    build: {
-      rollupOptions: {
-        external: ['/pagefind/pagefind.js', `${base}pagefind/pagefind.js`],
-      },
-    },
   },
 });

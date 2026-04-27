@@ -38,9 +38,11 @@ const base = import.meta.env.BASE_URL;
 <script>
   let pagefindInstance: any = null;
 
+  const dynamicImport = new Function('url', 'return import(url)') as (url: string) => Promise<any>;
+
   async function initSearch(basePath: string) {
     if (!pagefindInstance) {
-      pagefindInstance = await import(`${basePath}pagefind/pagefind.js`);
+      pagefindInstance = await dynamicImport(`${basePath}pagefind/pagefind.js`);
       await pagefindInstance.init({ baseUrl: basePath });
     }
     return pagefindInstance;
