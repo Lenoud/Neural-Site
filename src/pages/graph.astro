@@ -1,0 +1,61 @@
+---
+import { getCollection } from 'astro:content';
+import { buildSlugMap } from '../utils/slug-map';
+import Layout from '../layouts/Layout.astro';
+
+const allNotes = await getCollection('notes');
+const slugMap = await buildSlugMap();
+
+const nodes = allNotes.map(n => ({
+  id: n.id,
+  name: n.data.title,
+}));
+
+const links: { source: string; target: string }[] = [];
+allNotes.forEach(source => {
+  const matches = source.body?.match(/\[\[(.*?)\]\]/g);
+  if (matches) {
+    matches.forEach(link => {
+      const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
+      const targetSlug = slugMap.get(targetName);
+      if (targetSlug) {
+        links.push({ source: source.id, target: targetSlug });
+      }
+    });
+  }
+});
+
+const graphData = { nodes, links };
+---
+
+<Layout title="全局图谱">
+  <div style="display: flex; flex-direction: column; height: 100vh;">
+    <header style="padding: 16px 24px; display: flex; align-items: center; gap: 16px;">
+      <a href="/" style="color: #ccc;">← 返回</a>
+      <h1 style="color: #fff; font-size: 18px; margin: 0;">Global Graph</h1>
+    </header>
+    <div id="global-graph" style="flex: 1;" data-graph={JSON.stringify(graphData)}></div>
+  </div>
+</Layout>
+
+<script>
+  import ForceGraph from 'force-graph';
+
+  const el = document.getElementById('global-graph')!;
+  const data = JSON.parse(el.dataset.graph || '{}');
+
+  ForceGraph()(el)
+    .graphData(data)
+    .nodeId('id')
+    .nodeLabel('name')
+    .nodeColor(() => '#6ab0e6')
+    .nodeVal(2)
+    .linkColor(() => 'rgba(136,136,136,0.3)')
+    .linkWidth(1)
+    .backgroundColor('#1e1e1e')
+    .warmupTicks(50)
+    .cooldownTicks(200)
+    .onNodeClick((node: any) => {
+      window.location.href = `/notes/${node.id}`;
+    });
+</script>
