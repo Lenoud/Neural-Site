@@ -8,13 +8,14 @@ interface Props {
 }
 
 const { currentSlug } = Astro.props;
+const base = import.meta.env.BASE_URL;
 const allNotes = await getCollection('notes');
 const tree = buildNavTree(allNotes);
 ---
 
 <div class="sidebar-inner">
   <div class="sidebar-header">
-    <a href="/" class="logo">知识库</a>
+    <a href={base} class="logo">知识库</a>
   </div>
   <div class="sidebar-search">
     <button class="search-trigger" id="search-trigger">🔍 搜索文档...</button>
