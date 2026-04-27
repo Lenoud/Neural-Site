@@ -50,7 +50,7 @@ export function buildNavTree(notes: CollectionEntry<'notes'>[]): NavItem[] {
     }
 
     current.push({
-      name: note.data.title,
+      name: note.data.title || note.id.split('/').pop() || note.id,
       slug: note.id,
       order: note.data.order,
     });

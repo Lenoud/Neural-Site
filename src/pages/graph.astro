@@ -8,7 +8,7 @@ const { byPath, byName } = await buildSlugIndex();
 
 const nodes = allNotes.map(n => ({
   id: n.id,
-  name: n.data.title,
+  name: n.data.title || n.id.split('/').pop() || n.id,
 }));
 
 const links: { source: string; target: string }[] = [];

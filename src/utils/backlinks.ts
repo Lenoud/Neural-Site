@@ -59,7 +59,7 @@ export function buildBacklinkIndex(
           list = [];
           index.set(targetId, list);
         }
-        list.push({ slug: note.id, title: note.data.title });
+        list.push({ slug: note.id, title: note.data.title || note.id.split('/').pop() || note.id });
       }
     }
   }

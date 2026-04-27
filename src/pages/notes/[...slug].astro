@@ -15,11 +15,12 @@ export async function getStaticPaths() {
 
 const { note } = Astro.props;
 const { Content, headings } = await render(note);
+const title = note.data.title || note.id.split('/').pop() || note.id;
 
 const { byPath, byName } = await buildSlugIndex();
 const allNotes = await getCollection('notes');
 
-const nodes = [{ id: note.id, name: note.data.title }];
+const nodes = [{ id: note.id, name: title }];
 const links: { source: string; target: string }[] = [];
 
 const matches = note.body?.match(/\[\[(.*?)\]\]/g);
@@ -58,9 +59,9 @@ const tocHeadings = headings
 const graphData = { nodes, links };
 ---
 
-<Layout title={note.data.title}>
+<Layout title={title}>
   <PageLayout
-    title={note.data.title}
+    title={title}
     currentSlug={note.id}
     headings={tocHeadings}
     backlinks={backlinks}
