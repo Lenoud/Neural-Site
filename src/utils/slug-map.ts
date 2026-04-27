@@ -6,6 +6,7 @@ export interface SlugEntry {
   fullPath: string;    // 原始完整路径
 }
 
+// SSG-only: module-level cache, never invalidated (safe because each build is a fresh process)
 let cachedByPath: Map<string, SlugEntry> | null = null;
 let cachedByName: Map<string, SlugEntry[]> | null = null;
 

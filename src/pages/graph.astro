@@ -25,12 +25,32 @@ allNotes.forEach(source => {
   }
 });
 
-const graphData = { nodes, links };
+// 服务端过滤：超过 2000 节点时按连接密度取 top 2000，减少 HTML payload
+const MAX_GLOBAL_NODES = 2000;
+let graphData = { nodes, links };
+if (nodes.length > MAX_GLOBAL_NODES) {
+  const linkCounts = new Map<string, number>();
+  links.forEach(l => {
+    linkCounts.set(l.source, (linkCounts.get(l.source) || 0) + 1);
+    linkCounts.set(l.target, (linkCounts.get(l.target) || 0) + 1);
+  });
+  const kept = new Set(
+    [...linkCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, MAX_GLOBAL_NODES)
+      .map(([id]) => id),
+  );
+  graphData = {
+    nodes: nodes.filter(n => kept.has(n.id)),
+    links: links.filter(l => kept.has(l.source) && kept.has(l.target)),
+  };
+}
+const totalNodeCount = nodes.length;
 ---
 
-{nodes.length > 2000 && (
+{totalNodeCount > MAX_GLOBAL_NODES && (
   <p style="color: var(--text-muted); padding: 8px 24px; font-size: 13px;">
-    节点过多（{nodes.length}），已筛选连接最密集的 2000 个节点展示。
+    节点过多（{totalNodeCount}），已筛选连接最密集的 {MAX_GLOBAL_NODES} 个节点展示。
   </p>
 )}
 
@@ -48,26 +68,7 @@ const graphData = { nodes, links };
   import ForceGraph from 'force-graph';
 
   const el = document.getElementById('global-graph')!;
-  const raw = JSON.parse(el.dataset.graph || '{}');
-
-  const MAX_NODES = 2000;
-  let data = raw;
-  if (raw.nodes.length > MAX_NODES) {
-    const linkCounts = new Map<string, number>();
-    raw.links.forEach((l: any) => {
-      linkCounts.set(l.source, (linkCounts.get(l.source) || 0) + 1);
-      linkCounts.set(l.target, (linkCounts.get(l.target) || 0) + 1);
-    });
-    const sorted = [...linkCounts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, MAX_NODES)
-      .map(([id]) => id);
-    const kept = new Set(sorted);
-    data = {
-      nodes: raw.nodes.filter((n: any) => kept.has(n.id)),
-      links: raw.links.filter((l: any) => kept.has(l.source) && kept.has(l.target)),
-    };
-  }
+  const data = JSON.parse(el.dataset.graph || '{}');
 
   ForceGraph()(el)
     .graphData(data)
