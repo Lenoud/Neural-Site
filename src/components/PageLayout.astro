@@ -1,0 +1,39 @@
+---
+import Sidebar from './Sidebar.astro';
+import RightPanel from './RightPanel.astro';
+
+interface Props {
+  title: string;
+  currentSlug?: string;
+  headings?: { depth: number; slug: string; text: string }[];
+  backlinks?: { slug: string; title: string }[];
+  graphData?: object;
+  currentId?: string;
+  metadata?: Record<string, string | undefined>;
+}
+const { title, currentSlug, headings = [], backlinks = [], graphData, currentId, metadata } = Astro.props;
+---
+<div class="page-layout">
+  <button class="mobile-toggle" id="mobile-toggle">☰</button>
+  <aside class="sidebar" id="sidebar" data-current={currentSlug}>
+    <Sidebar currentSlug={currentSlug} />
+  </aside>
+  <main class="content-area" data-pagefind-body>
+    <slot />
+  </main>
+  <aside class="right-panel">
+    <RightPanel
+      headings={headings}
+      backlinks={backlinks}
+      graphData={graphData}
+      currentId={currentId}
+      metadata={metadata}
+    />
+  </aside>
+</div>
+
+<script>
+  const toggle = document.getElementById('mobile-toggle');
+  const sidebar = document.getElementById('sidebar');
+  toggle?.addEventListener('click', () => sidebar?.classList.toggle('open'));
+</script>

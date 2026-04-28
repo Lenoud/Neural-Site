@@ -1,0 +1,9 @@
+{
+  "repos": [
+    {
+      "url": "ssh://git@git.skyrisai.com:8781/origin/tech/obsidian.git",
+      "branch": "develop",
+      "dir": "obsidian"
+    }
+  ]
+}

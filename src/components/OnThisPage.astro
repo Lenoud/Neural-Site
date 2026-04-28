@@ -1,0 +1,32 @@
+---
+interface Props {
+  headings: { depth: number; slug: string; text: string }[];
+}
+const { headings } = Astro.props;
+---
+
+{headings.length > 0 && (
+  <section>
+    <h4>本页目录</h4>
+    <ul class="toc-list">
+      {headings.map(h => (
+        <li class={`toc-item depth-${h.depth}`}>
+          <a href={`#${h.slug}`}>{h.text}</a>
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
+<style>
+  .toc-list { list-style: none; }
+  .toc-item a {
+    display: block;
+    padding: 4px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-decoration: none;
+  }
+  .toc-item a:hover { color: var(--text-secondary); }
+  .toc-item.depth-3 { padding-left: 12px; }
+</style>

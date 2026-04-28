@@ -1,93 +1,127 @@
-# obsidian_kbsite
+# Neural-Site — 个人知识库
 
+基于 Astro 6 构建的 Obsidian Publish 风格知识库站点，支持 `[[wikilink]]` 双链、标准 Markdown 链接、图谱可视化、中文全文搜索。
 
+## 功能特性
 
-## Getting started
+- **双链接格式** — 同时支持 `[[wikilink]]` 和标准 `[text](file.md)` Markdown 链接，兼容 GitBook/Obsidian 等来源
+- **交互式图谱** — 全局图谱与局部图谱，节点 hover 高亮连线，缩放自动隐藏标签
+- **中文全文搜索** — 集成 Pagefind，Ctrl+K 快速搜索
+- **卡片式首页** — 自动扫描知识库目录，按文档数量排序展示
+- **三栏布局** — 左侧目录导航 + 中间内容区 + 右侧 TOC / 反向链接 / 局部图谱
+- **暗色主题** — Obsidian Publish 风格深色界面
+- **双部署** — GitLab CI → 内部 Nginx / GitHub Actions → GitHub Pages
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## 项目结构
 
 ```
-cd existing_repo
-git remote add origin https://git.skyrisai.com/origin/tech/web/obsidian_kbsite.git
-git branch -M main
-git push -uf origin main
+src/
+├── components/
+│   ├── Backlinks.astro          # 反向链接列表
+│   ├── LocalGraph.astro         # 局部知识图谱
+│   ├── NavTree.astro            # 树状导航菜单
+│   ├── OnThisPage.astro         # 页面内目录 (TOC)
+│   ├── PageLayout.astro         # 笔记页面三栏布局
+│   ├── RightPanel.astro         # 右侧面板容器
+│   ├── SearchDialog.astro       # Pagefind 搜索弹窗
+│   └── Sidebar.astro            # 左侧边栏
+├── content/
+│   └── notes/                   # Markdown 文档（按知识库目录组织）
+│       ├── Go入门指南/
+│       ├── Docker技术/
+│       ├── Kubernetes技术/
+│       └── ...
+├── layouts/
+│   └── Layout.astro             # 全局 HTML 布局
+├── pages/
+│   ├── graph.astro              # 全局图谱页
+│   ├── index.astro              # 卡片式首页
+│   └── notes/[...slug].astro    # 笔记动态路由
+├── plugins/
+│   ├── remark-wikilinks.ts      # Wikilink 解析插件
+│   └── rehype-relative-md-links.ts  # 标准 .md 链接重写插件
+├── styles/
+│   └── global.css               # 全局样式与暗色主题
+└── utils/
+    ├── backlink-cache.ts        # 反向链接缓存
+    ├── nav-tree.ts              # 导航树构建
+    └── slug-map.ts              # Slug 索引与链接解析
 ```
 
-## Integrate with your tools
+## 快速开始
 
-- [ ] [Set up project integrations](https://git.skyrisai.com/origin/tech/web/obsidian_kbsite/-/settings/integrations)
+```bash
+# 安装依赖（需要 Node.js >= 22.12）
+npm install
 
-## Collaborate with your team
+# 本地开发
+npm run dev
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+# 构建生产版本
+npm run build
 
-## Test and Deploy
+# 本地预览构建结果
+npm run preview
+```
 
-Use the built-in continuous integration in GitLab.
+## 添加外部内容
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+将 Markdown 文件放到 `src/content/notes/` 下任意子目录即可，构建时自动索引。支持直接放入 GitBook 格式的内容（含 `[text](file.md)` 标准链接）。
 
-***
+## 文档编写
 
-# Editing this README
+文档放在 `src/content/notes/` 目录下，使用 Markdown 格式，支持以下 frontmatter 字段：
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```yaml
+---
+title: 文档标题        # 可选，缺省时用文件名
+tags: [标签1, 标签2]   # 可选
+order: 10              # 可选，控制导航排序
+---
+```
 
-## Suggestions for a good README
+### 链接语法
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+同时支持两种格式：
 
-## Name
-Choose a self-explaining name for your project.
+| 语法 | 说明 |
+|------|------|
+| `[[快速开始]]` | Wikilink 链接到同名文件 |
+| `[[路径/页面]]` | Wikilink 按路径链接 |
+| `[[页面#标题]]` | Wikilink 链接到标题 |
+| `[[页面\|别名]]` | Wikilink 使用别名 |
+| `[text](file.md)` | 标准 Markdown 链接（自动解析为站点路由） |
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### 图片
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+支持 Obsidian 原生 `![[image.png]]` 语法。图片放在：
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+- `attachments/` — 全局附件目录
+- `src/content/notes/` — 跟笔记放一起
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```markdown
+![[screenshot.png]]           # 按文件名引用
+![[screenshot.png|300]]       # 指定宽度（px）
+![[screenshot.png|50%]]       # 指定宽度（百分比）
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## 部署
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### GitHub Pages
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+推送 `main` 分支自动触发 GitHub Actions 部署，通过 `BASE_PATH=/Neural-Site/` 环境变量处理路径前缀。
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+### 内部 Nginx（GitLab CI）
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+1. 在 GitLab 项目 Settings → CI/CD → Variables 中配置：
+   - `DEPLOY_USER` — SSH 用户名
+   - `DEPLOY_HOST` — 服务器地址
+   - `DEPLOY_PATH` — Nginx 静态文件目录
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+2. 推送到 GitLab 即自动部署，内部部署无需路径前缀。
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+## 技术栈
 
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+- [Astro 6](https://astro.build) — 静态站点框架
+- [force-graph](https://github.com/vasturiano/force-graph) — 力导向图可视化
+- [Pagefind](https://pagefind.app) — 静态全文搜索

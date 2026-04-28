@@ -1,0 +1,133 @@
+---
+import { getCollection } from 'astro:content';
+import { buildSlugIndex, resolveWikilink } from '../utils/slug-map';
+import Layout from '../layouts/Layout.astro';
+
+const allNotes = await getCollection('notes');
+const { byPath, byName } = await buildSlugIndex();
+
+const nodes = allNotes.map(n => ({
+  id: n.id,
+  name: n.data.title || n.id.split('/').pop() || n.id,
+}));
+
+const links: { source: string; target: string }[] = [];
+allNotes.forEach(source => {
+  // 匹配 [[wikilinks]]
+  const wikiMatches = source.body?.match(/\[\[(.*?)\]\]/g);
+  if (wikiMatches) {
+    wikiMatches.forEach(link => {
+      const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
+      const targetId = resolveWikilink(targetName, byPath, byName, source.id);
+      if (targetId) {
+        links.push({ source: source.id, target: targetId });
+      }
+    });
+  }
+  // 匹配标准 markdown 链接 [text](file.md)
+  const mdMatches = source.body?.match(/\[([^\]]*)\]\(([^)]+\.md)\)/g);
+  if (mdMatches) {
+    mdMatches.forEach(link => {
+      const urlMatch = link.match(/\]\(([^)]+\.md)\)/);
+      if (!urlMatch) return;
+      const rawTarget = urlMatch[1].replace(/\.md$/, '');
+      const targetId = resolveWikilink(rawTarget, byPath, byName, source.id);
+      if (targetId && targetId !== source.id) {
+        links.push({ source: source.id, target: targetId });
+      }
+    });
+  }
+});
+
+// 服务端过滤：超过 2000 节点时按连接密度取 top 2000，减少 HTML payload
+const MAX_GLOBAL_NODES = 2000;
+let graphData = { nodes, links };
+if (nodes.length > MAX_GLOBAL_NODES) {
+  const linkCounts = new Map<string, number>();
+  links.forEach(l => {
+    linkCounts.set(l.source, (linkCounts.get(l.source) || 0) + 1);
+    linkCounts.set(l.target, (linkCounts.get(l.target) || 0) + 1);
+  });
+  const kept = new Set(
+    [...linkCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, MAX_GLOBAL_NODES)
+      .map(([id]) => id),
+  );
+  graphData = {
+    nodes: nodes.filter(n => kept.has(n.id)),
+    links: links.filter(l => kept.has(l.source) && kept.has(l.target)),
+  };
+}
+const totalNodeCount = nodes.length;
+---
+
+{totalNodeCount > MAX_GLOBAL_NODES && (
+  <p style="color: var(--text-muted); padding: 8px 24px; font-size: 13px;">
+    节点过多（{totalNodeCount}），已筛选连接最密集的 {MAX_GLOBAL_NODES} 个节点展示。
+  </p>
+)}
+
+<Layout title="全局图谱">
+  <div style="display: flex; flex-direction: column; height: 100vh;">
+    <header style="padding: 16px 24px; display: flex; align-items: center; gap: 16px;">
+      <a href={`${import.meta.env.BASE_URL}`} style="color: #ccc;">← 返回</a>
+      <h1 style="color: #fff; font-size: 18px; margin: 0;">全局图谱</h1>
+    </header>
+    <div id="global-graph" style="flex: 1;" data-graph={JSON.stringify(graphData)}></div>
+  </div>
+</Layout>
+
+<script>
+  import ForceGraph from 'force-graph';
+
+  const el = document.getElementById('global-graph')!;
+  const data = JSON.parse(el.dataset.graph || '{}');
+  let hoverNodeId: string | null = null;
+
+  const graph = ForceGraph()(el)
+    .graphData(data)
+    .nodeId('id')
+    .nodeLabel('name')
+    .nodeColor(() => '#6ab0e6')
+    .nodeVal(2)
+    .nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+      const r = 4 / globalScale;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = '#6ab0e6';
+      ctx.fill();
+      if (globalScale < 0.4) return;
+      const fontSize = 12 / globalScale;
+      ctx.font = `${fontSize}px Sans-Serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = '#cccccc';
+      ctx.fillText(node.name, node.x, (node.y || 0) + r + 2 / globalScale);
+    })
+    .linkColor((link: any) => {
+      if (!hoverNodeId) return 'rgba(136,136,136,0.3)';
+      if (link.source.id === hoverNodeId || link.target.id === hoverNodeId) {
+        return '#b388ff';
+      }
+      return 'rgba(136,136,136,0.06)';
+    })
+    .linkWidth((link: any) => {
+      if (!hoverNodeId) return 1;
+      if (link.source.id === hoverNodeId || link.target.id === hoverNodeId) {
+        return 2;
+      }
+      return 0.5;
+    })
+    .backgroundColor('#1e1e1e')
+    .warmupTicks(50)
+    .cooldownTicks(100)
+    .d3AlphaDecay(0.05)
+    .onNodeClick((node: any) => {
+      window.location.href = `${import.meta.env.BASE_URL}notes/${node.id}`;
+    })
+    .onNodeHover((node: any) => {
+      hoverNodeId = node?.id || null;
+      graph.linkColor(graph.linkColor());
+    });
+</script>
