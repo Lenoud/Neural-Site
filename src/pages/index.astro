@@ -7,11 +7,15 @@ const base = import.meta.env.BASE_URL;
 const allNotes = await getCollection('notes');
 const homeNote = allNotes.find(n => n.id === '首页') || allNotes.find(n => n.id === '首页/首页');
 
-// 统计知识库目录
+// 统计知识库目录，并找到每个目录下第一个笔记作为入口
 const dirCounts = new Map<string, number>();
+const dirFirstNote = new Map<string, string>();
 for (const note of allNotes) {
   const topDir = note.id.split('/')[0];
   dirCounts.set(topDir, (dirCounts.get(topDir) || 0) + 1);
+  if (!dirFirstNote.has(topDir)) {
+    dirFirstNote.set(topDir, note.id);
+  }
 }
 const hiddenDirs = new Set(['attachments', 'temp', '双因素认证恢复码']);
 const knowledgeBases = [...dirCounts.entries()]
@@ -35,7 +39,7 @@ const title = homeNote?.data?.title || '知识库';
         <p>选择一个知识库开始浏览：</p>
         <div class="card-grid">
           {knowledgeBases.map(([dir, count]: [string, number]) => (
-            <a href={`${base}notes/${dir}/${dir}`} class="card">
+            <a href={`${base}notes/${dirFirstNote.get(dir)}`} class="card">
               <div class="card-icon">📁</div>
               <div class="card-info">
                 <div class="card-title">{dir}</div>
