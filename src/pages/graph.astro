@@ -13,12 +13,26 @@ const nodes = allNotes.map(n => ({
 
 const links: { source: string; target: string }[] = [];
 allNotes.forEach(source => {
-  const matches = source.body?.match(/\[\[(.*?)\]\]/g);
-  if (matches) {
-    matches.forEach(link => {
+  // 匹配 [[wikilinks]]
+  const wikiMatches = source.body?.match(/\[\[(.*?)\]\]/g);
+  if (wikiMatches) {
+    wikiMatches.forEach(link => {
       const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
       const targetId = resolveWikilink(targetName, byPath, byName, source.id);
       if (targetId) {
+        links.push({ source: source.id, target: targetId });
+      }
+    });
+  }
+  // 匹配标准 markdown 链接 [text](file.md)
+  const mdMatches = source.body?.match(/\[([^\]]*)\]\(([^)]+\.md)\)/g);
+  if (mdMatches) {
+    mdMatches.forEach(link => {
+      const urlMatch = link.match(/\]\(([^)]+\.md)\)/);
+      if (!urlMatch) return;
+      const rawTarget = urlMatch[1].replace(/\.md$/, '');
+      const targetId = resolveWikilink(rawTarget, byPath, byName, source.id);
+      if (targetId && targetId !== source.id) {
         links.push({ source: source.id, target: targetId });
       }
     });
@@ -69,8 +83,9 @@ const totalNodeCount = nodes.length;
 
   const el = document.getElementById('global-graph')!;
   const data = JSON.parse(el.dataset.graph || '{}');
+  let hoverNodeId: string | null = null;
 
-  ForceGraph()(el)
+  const graph = ForceGraph()(el)
     .graphData(data)
     .nodeId('id')
     .nodeLabel('name')
@@ -78,12 +93,11 @@ const totalNodeCount = nodes.length;
     .nodeVal(2)
     .nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
       const r = 4 / globalScale;
-      // 画圆点
       ctx.beginPath();
       ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
       ctx.fillStyle = '#6ab0e6';
       ctx.fill();
-      // 画文字
+      if (globalScale < 0.4) return;
       const fontSize = 12 / globalScale;
       ctx.font = `${fontSize}px Sans-Serif`;
       ctx.textAlign = 'center';
@@ -91,13 +105,29 @@ const totalNodeCount = nodes.length;
       ctx.fillStyle = '#cccccc';
       ctx.fillText(node.name, node.x, (node.y || 0) + r + 2 / globalScale);
     })
-    .linkColor(() => 'rgba(136,136,136,0.3)')
-    .linkWidth(1)
+    .linkColor((link: any) => {
+      if (!hoverNodeId) return 'rgba(136,136,136,0.3)';
+      if (link.source.id === hoverNodeId || link.target.id === hoverNodeId) {
+        return '#b388ff';
+      }
+      return 'rgba(136,136,136,0.06)';
+    })
+    .linkWidth((link: any) => {
+      if (!hoverNodeId) return 1;
+      if (link.source.id === hoverNodeId || link.target.id === hoverNodeId) {
+        return 2;
+      }
+      return 0.5;
+    })
     .backgroundColor('#1e1e1e')
     .warmupTicks(50)
     .cooldownTicks(100)
     .d3AlphaDecay(0.05)
     .onNodeClick((node: any) => {
       window.location.href = `${import.meta.env.BASE_URL}notes/${node.id}`;
+    })
+    .onNodeHover((node: any) => {
+      hoverNodeId = node?.id || null;
+      graph.linkColor(graph.linkColor());
     });
 </script>

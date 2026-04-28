@@ -37,6 +37,23 @@ if (matches) {
     }
   }
 }
+// 同时解析标准 markdown 链接 [text](file.md)
+const mdMatches = note.body?.match(/\[([^\]]*)\]\(([^)]+\.md)\)/g);
+if (mdMatches) {
+  for (const link of mdMatches) {
+    const urlMatch = link.match(/\]\(([^)]+\.md)\)/);
+    if (!urlMatch) continue;
+    const rawTarget = urlMatch[1].replace(/\.md$/, '');
+    const targetId = resolveWikilink(rawTarget, byPath, byName, note.id);
+    if (targetId && targetId !== note.id) {
+      if (!nodes.find(n => n.id === targetId)) {
+        const targetNote = allNotes.find(n => n.id === targetId);
+        nodes.push({ id: targetId, name: targetNote?.data.title || rawTarget });
+      }
+      links.push({ source: note.id, target: targetId });
+    }
+  }
+}
 
 const MAX_LOCAL_GRAPH_NODES = 30;
 if (nodes.length > MAX_LOCAL_GRAPH_NODES) {
