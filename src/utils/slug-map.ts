@@ -69,11 +69,18 @@ export function resolveWikilink(
   currentPath?: string,
 ): string | null {
   // 1. 精确路径匹配
-  const pathMatch = byPath.get(target.toLowerCase());
+  let pathMatch = byPath.get(target.toLowerCase());
+  if (pathMatch) return pathMatch.id;
+  // 兼容带点号的文件名（如 01.2 → 012）
+  const dotless = target.replace(/\./g, '').toLowerCase();
+  pathMatch = byPath.get(dotless);
   if (pathMatch) return pathMatch.id;
 
   // 2. 文件名匹配
-  const candidates = byName.get(target.toLowerCase());
+  let candidates = byName.get(target.toLowerCase());
+  if (!candidates || candidates.length === 0) {
+    candidates = byName.get(dotless);
+  }
   if (!candidates || candidates.length === 0) return null;
 
   if (candidates.length === 1) return candidates[0].id;

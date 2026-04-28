@@ -47,6 +47,42 @@ export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; 
       ?.replace(/\.md$/, '')
       ?.toLowerCase() || '';
 
+    // 第二遍：将标准 markdown 链接 [text](xx.md) 解析为内部链接
+    visit(tree, 'link', (node: any) => {
+      const url = node.url;
+      if (!url || !url.endsWith('.md')) return;
+      // 跳过外部链接
+      if (/^(https?:|\/)/.test(url)) return;
+
+      const linkTarget = url.replace(/\.md$/, '').replace(/\./g, '');
+      let resolvedId: string | null = null;
+
+      const pathMatch = byPath.get(linkTarget.toLowerCase());
+      if (pathMatch) {
+        resolvedId = pathMatch.id;
+      } else {
+        // 去掉可能的目录前缀，用文件名匹配
+        const fileName = linkTarget.includes('/') ? linkTarget.slice(linkTarget.lastIndexOf('/') + 1) : linkTarget;
+        const candidates = byName.get(fileName.toLowerCase());
+        if (candidates && candidates.length > 0) {
+          if (candidates.length === 1) {
+            resolvedId = candidates[0].id;
+          } else if (currentPath) {
+            const currentDir = currentPath.split('/').slice(0, -1).join('/');
+            const sameGroup = candidates.find((c: any) => c.id.startsWith(currentDir + '/'));
+            resolvedId = sameGroup ? sameGroup.id : candidates[0].id;
+          } else {
+            resolvedId = candidates[0].id;
+          }
+        }
+      }
+
+      if (resolvedId) {
+        node.url = `${base}notes/${resolvedId}`;
+      }
+    });
+
+    // 第一遍：处理 [[wikilinks]]
     visit(tree, 'text', (node: any, index: number | undefined, parent: any) => {
       if (index === undefined || !parent) return;
 

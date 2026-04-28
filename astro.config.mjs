@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import { remarkWikilinks } from './src/plugins/remark-wikilinks';
+import { rehypeRelativeMdLinks } from './src/plugins/rehype-relative-md-links';
 import path from 'node:path';
 import fs from 'node:fs';
 
@@ -21,7 +22,8 @@ function buildSlugIndexFromFS() {
       } else if (entry.name.endsWith('.md')) {
         const relativePath = path.relative(notesDir, fullPath).replace(/\.md$/, '');
         const fileName = path.basename(entry.name, '.md');
-        const astroId = relativePath.toLowerCase();
+        // Astro glob loader 会去掉文件名中的点号，保持一致
+        const astroId = relativePath.replace(/\./g, '').toLowerCase();
 
         byPath.set(relativePath, { id: astroId });
         byPath.set(relativePath.toLowerCase(), { id: astroId });
@@ -80,6 +82,7 @@ export default defineConfig({
   base,
   markdown: {
     remarkPlugins: [[remarkWikilinks, { byPath, byName, base, imageIndex }]],
+    rehypePlugins: [[rehypeRelativeMdLinks, { byPath, byName, base }]],
   },
   vite: {
   },
