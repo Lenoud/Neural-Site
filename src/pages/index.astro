@@ -1,12 +1,78 @@
 ---
+import Layout from '../layouts/Layout.astro';
+import PageLayout from '../components/PageLayout.astro';
+import { getCollection, render } from 'astro:content';
+
 const base = import.meta.env.BASE_URL;
-const target = `${base}notes/%E5%85%A5%E9%97%A8/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B`;
+const allNotes = await getCollection('notes');
+const homeNote = allNotes.find(n => n.id === '首页') || allNotes.find(n => n.id === '首页/首页');
+
+// 统计知识库目录
+const dirCounts = new Map<string, number>();
+for (const note of allNotes) {
+  const topDir = note.id.split('/')[0];
+  dirCounts.set(topDir, (dirCounts.get(topDir) || 0) + 1);
+}
+const hiddenDirs = new Set(['attachments', 'temp', '双因素认证恢复码']);
+const knowledgeBases = [...dirCounts.entries()]
+  .filter(([dir]) => !hiddenDirs.has(dir))
+  .sort((a, b) => b[1] - a[1]);
+
+let ContentComponent: any = null;
+if (homeNote) {
+  const rendered = await render(homeNote);
+  ContentComponent = rendered.Content;
+}
+const title = homeNote?.data?.title || '知识库';
 ---
-<html>
-<head>
-  <meta http-equiv="refresh" content={`0;url=${target}`} />
-</head>
-<body>
-  <p>Redirecting to <a href={target}>快速开始</a>...</p>
-</body>
-</html>
+
+<Layout title={title}>
+  <PageLayout title={title} currentSlug={homeNote?.id}>
+    {ContentComponent ? (
+      <ContentComponent />
+    ) : (
+      <div class="home">
+        <p>选择一个知识库开始浏览：</p>
+        <div class="card-grid">
+          {knowledgeBases.map(([dir, count]: [string, number]) => (
+            <a href={`${base}notes/${dir}/${dir}`} class="card">
+              <div class="card-icon">📁</div>
+              <div class="card-info">
+                <div class="card-title">{dir}</div>
+                <div class="card-count">{count} 篇文档</div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+  </PageLayout>
+</Layout>
+
+<style>
+  .home p { color: var(--text-muted); margin-bottom: 24px; }
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    text-decoration: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+    text-decoration: none;
+  }
+  .card-icon { font-size: 28px; flex-shrink: 0; }
+  .card-title { color: var(--text-primary); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .card-count { color: var(--text-muted); font-size: 12px; }
+</style>
