@@ -22,8 +22,8 @@ function buildSlugIndexFromFS() {
       } else if (entry.name.endsWith('.md')) {
         const relativePath = path.relative(notesDir, fullPath).replace(/\.md$/, '');
         const fileName = path.basename(entry.name, '.md');
-        // Astro glob loader 会去掉文件名中的点号，保持一致
-        const astroId = relativePath.replace(/\./g, '').toLowerCase();
+        // Astro glob loader: 去点号、空格变短横线、全小写
+        const astroId = relativePath.replace(/\./g, '').replace(/ /g, '-').toLowerCase();
 
         byPath.set(relativePath, { id: astroId });
         byPath.set(relativePath.toLowerCase(), { id: astroId });
