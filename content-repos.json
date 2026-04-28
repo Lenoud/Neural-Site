@@ -1,9 +1,9 @@
 {
   "repos": [
     {
-      "url": "ssh://git@git.skyrisai.com:8781/moon/obsidian.git",
+      "url": "ssh://git@git.skyrisai.com:8781/origin/tech/obsidian.git",
       "branch": "develop",
-      "dir": "何洋"
+      "dir": "team/obsidian"
     }
   ]
 }
