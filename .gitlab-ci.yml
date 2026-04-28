@@ -1,0 +1,23 @@
+image: node:22
+
+pages:
+  stage: deploy
+  only:
+    - main
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "$SYNC_SSH_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan -p 8781 git.skyrisai.com >> ~/.ssh/known_hosts 2>/dev/null
+    - 'which git || (apt-get update -qq && apt-get install -y -qq git)'
+  script:
+    - npm config set registry https://registry.npmmirror.com
+    - npm ci
+    - npm run build:with-sync
+    - rm -rf _public && mv dist _public
+    - rm -rf public && mv _public public
+  artifacts:
+    paths:
+      - public
+  tags:
+    - docker
