@@ -8,6 +8,9 @@ const notes = defineCollection({
     title: z.string().optional(),
     tags: z.array(z.string()).optional(),
     order: z.number().optional(),
+    作者: z.string().optional(),
+    创建日期: z.union([z.string(), z.date()]).optional(),
+    修改日期: z.union([z.string(), z.date()]).optional(),
   }),
 });
 

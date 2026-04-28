@@ -84,6 +84,11 @@ const graphData = { nodes, links };
     backlinks={backlinks}
     graphData={graphData}
     currentId={note.id}
+    metadata={{
+      作者: note.data.作者,
+      创建日期: note.data.创建日期 ? new Date(note.data.创建日期).toLocaleDateString('zh-CN') : undefined,
+      修改日期: note.data.修改日期 ? new Date(note.data.修改日期).toLocaleDateString('zh-CN') : undefined,
+    }}
   >
     <Content />
   </PageLayout>

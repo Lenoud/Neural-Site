@@ -9,8 +9,9 @@ interface Props {
   backlinks?: { slug: string; title: string }[];
   graphData?: object;
   currentId?: string;
+  metadata?: Record<string, string | undefined>;
 }
-const { title, currentSlug, headings = [], backlinks = [], graphData, currentId } = Astro.props;
+const { title, currentSlug, headings = [], backlinks = [], graphData, currentId, metadata } = Astro.props;
 ---
 <div class="page-layout">
   <button class="mobile-toggle" id="mobile-toggle">☰</button>
@@ -26,6 +27,7 @@ const { title, currentSlug, headings = [], backlinks = [], graphData, currentId 
       backlinks={backlinks}
       graphData={graphData}
       currentId={currentId}
+      metadata={metadata}
     />
   </aside>
 </div>
