@@ -1,0 +1,24 @@
+{
+  "name": "short-star",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "sync": "node scripts/sync-content.mjs",
+    "dev": "node scripts/sync-content.mjs && astro dev",
+    "build": "astro build && node scripts/pagefind.mjs",
+    "build:with-sync": "node scripts/sync-content.mjs && astro build && node scripts/pagefind.mjs",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^6.1.9",
+    "force-graph": "^1.51.4",
+    "unist-util-visit": "^5.1.0"
+  },
+  "devDependencies": {
+    "pagefind": "^1.5.2"
+  }
+}

@@ -1,0 +1,37 @@
+---
+import LocalGraph from './LocalGraph.astro';
+import OnThisPage from './OnThisPage.astro';
+import Backlinks from './Backlinks.astro';
+
+interface Props {
+  headings?: { depth: number; slug: string; text: string }[];
+  backlinks?: { slug: string; title: string }[];
+  graphData?: any;
+  currentId?: string;
+  metadata?: Record<string, string | undefined>;
+}
+const { headings = [], backlinks = [], graphData, currentId, metadata } = Astro.props;
+
+const hasMetadata = metadata && Object.values(metadata).some(v => v);
+---
+
+{graphData && currentId && <LocalGraph graphData={graphData} currentId={currentId} />}
+<OnThisPage headings={headings} />
+{hasMetadata && (
+  <section>
+    <h4>元信息</h4>
+    <ul class="metadata-list">
+      {metadata && Object.entries(metadata).filter(([, v]) => v).map(([key, value]) => (
+        <li><span class="meta-key">{key}</span> <span class="meta-value">{value}</span></li>
+      ))}
+    </ul>
+  </section>
+)}
+<Backlinks backlinks={backlinks} />
+
+<style>
+  .metadata-list { list-style: none; }
+  .metadata-list li { padding: 3px 0; font-size: 12px; color: var(--text-muted); }
+  .meta-key { color: var(--text-muted); margin-right: 6px; }
+  .meta-value { color: var(--text-secondary); }
+</style>
