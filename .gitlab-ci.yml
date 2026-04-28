@@ -6,7 +6,7 @@ pages:
     - main
   before_script:
     - eval $(ssh-agent -s)
-    - chmod 600 "$SYNC_SSH_KEY" && ssh-add "$SYNC_SSH_KEY"
+    - echo "$SYNC_SSH_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - ssh-keyscan -p 8781 git.skyrisai.com >> ~/.ssh/known_hosts 2>/dev/null
     - 'which git || (apt-get update -qq && apt-get install -y -qq git)'
