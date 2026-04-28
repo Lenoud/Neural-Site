@@ -19,7 +19,7 @@ const hasMetadata = metadata && Object.values(metadata).some(v => v);
 <OnThisPage headings={headings} />
 {hasMetadata && (
   <section>
-    <h4>Metadata</h4>
+    <h4>元信息</h4>
     <ul class="metadata-list">
       {metadata && Object.entries(metadata).filter(([, v]) => v).map(([key, value]) => (
         <li><span class="meta-key">{key}</span> <span class="meta-value">{value}</span></li>
