@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import { remarkWikilinks } from './src/plugins/remark-wikilinks';
+import { remarkObsidianExt } from './src/plugins/remark-obsidian-ext';
 import { rehypeRelativeMdLinks } from './src/plugins/rehype-relative-md-links';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -81,7 +82,7 @@ const { byPath, byName } = buildSlugIndexFromFS();
 export default defineConfig({
   base,
   markdown: {
-    remarkPlugins: [[remarkWikilinks, { byPath, byName, base, imageIndex }]],
+    remarkPlugins: [[remarkWikilinks, { byPath, byName, base, imageIndex }], remarkObsidianExt],
     rehypePlugins: [[rehypeRelativeMdLinks, { byPath, byName, base }]],
   },
   vite: {
