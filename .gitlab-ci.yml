@@ -14,7 +14,8 @@ pages:
     - npm config set registry https://registry.npmmirror.com
     - npm ci
     - npm run build:with-sync
-    - mv dist public
+    - rm -rf _public && mv dist _public
+    - rm -rf public && mv _public public
   artifacts:
     paths:
       - public
