@@ -6,7 +6,7 @@ dist/
 
 # external synced content (managed by scripts/sync-content.mjs)
 # only exclude dirs declared in content-repos.json
-src/content/notes/运维组/
+src/content/notes/*/
 
 # dependencies
 node_modules/
