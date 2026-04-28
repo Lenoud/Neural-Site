@@ -6,11 +6,11 @@ const notes = defineCollection({
   loader: glob({ pattern: "**/*.md", base: "./src/content/notes" }),
   schema: z.object({
     title: z.string().optional(),
-    tags: z.array(z.string()).optional(),
+    tags: z.union([z.string(), z.array(z.string())]).optional(),
     order: z.number().optional(),
-    作者: z.string().optional(),
-    创建日期: z.union([z.string(), z.date()]).optional(),
-    修改日期: z.union([z.string(), z.date()]).optional(),
+    作者: z.any().optional(),
+    创建日期: z.any().optional(),
+    修改日期: z.any().optional(),
   }),
 });
 
