@@ -1,0 +1,9 @@
+{
+  "repos": [
+    {
+      "url": "ssh://git@git.skyrisai.com:8781/moon/obsidian.git",
+      "branch": "develop",
+      "dir": "何洋"
+    }
+  ]
+}

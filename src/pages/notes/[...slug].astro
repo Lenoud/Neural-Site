@@ -1,0 +1,95 @@
+---
+import { getCollection, render } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import PageLayout from '../../components/PageLayout.astro';
+import { buildSlugIndex, resolveWikilink } from '../../utils/slug-map';
+import { getBacklinkIndex } from '../../utils/backlink-cache';
+
+export async function getStaticPaths() {
+  const notes = await getCollection('notes');
+  return notes.map(note => ({
+    params: { slug: note.id },
+    props: { note },
+  }));
+}
+
+const { note } = Astro.props;
+const { Content, headings } = await render(note);
+const title = note.data.title || note.id.split('/').pop() || note.id;
+
+const { byPath, byName } = await buildSlugIndex();
+const allNotes = await getCollection('notes');
+
+const nodes = [{ id: note.id, name: title }];
+const links: { source: string; target: string }[] = [];
+
+const matches = note.body?.match(/\[\[(.*?)\]\]/g);
+if (matches) {
+  for (const link of matches) {
+    const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
+    const targetId = resolveWikilink(targetName, byPath, byName, note.id);
+    if (targetId) {
+      if (!nodes.find(n => n.id === targetId)) {
+        const targetNote = allNotes.find(n => n.id === targetId);
+        nodes.push({ id: targetId, name: targetNote?.data.title || targetName });
+      }
+      links.push({ source: note.id, target: targetId });
+    }
+  }
+}
+// 同时解析标准 markdown 链接 [text](file.md)
+const mdMatches = note.body?.match(/\[([^\]]*)\]\(([^)]+\.md)\)/g);
+if (mdMatches) {
+  for (const link of mdMatches) {
+    const urlMatch = link.match(/\]\(([^)]+\.md)\)/);
+    if (!urlMatch) continue;
+    const rawTarget = urlMatch[1].replace(/\.md$/, '');
+    const targetId = resolveWikilink(rawTarget, byPath, byName, note.id);
+    if (targetId && targetId !== note.id) {
+      if (!nodes.find(n => n.id === targetId)) {
+        const targetNote = allNotes.find(n => n.id === targetId);
+        nodes.push({ id: targetId, name: targetNote?.data.title || rawTarget });
+      }
+      links.push({ source: note.id, target: targetId });
+    }
+  }
+}
+
+const MAX_LOCAL_GRAPH_NODES = 30;
+if (nodes.length > MAX_LOCAL_GRAPH_NODES) {
+  const kept = new Set([note.id, ...nodes.slice(1, MAX_LOCAL_GRAPH_NODES).map(n => n.id)]);
+  const filteredNodes = nodes.filter(n => kept.has(n.id));
+  const filteredLinks = links.filter(l => kept.has(l.source) && kept.has(l.target));
+  nodes.length = 0;
+  nodes.push(...filteredNodes);
+  links.length = 0;
+  links.push(...filteredLinks);
+}
+
+const backlinkIndex = await getBacklinkIndex();
+const backlinks = backlinkIndex.get(note.id) || [];
+
+const tocHeadings = headings
+  ?.filter((h: any) => h.depth === 2 || h.depth === 3)
+  .map((h: any) => ({ depth: h.depth, slug: h.slug, text: h.text })) || [];
+
+const graphData = { nodes, links };
+---
+
+<Layout title={title}>
+  <PageLayout
+    title={title}
+    currentSlug={note.id}
+    headings={tocHeadings}
+    backlinks={backlinks}
+    graphData={graphData}
+    currentId={note.id}
+    metadata={{
+      作者: note.data.作者,
+      创建日期: note.data.创建日期 ? new Date(note.data.创建日期).toLocaleDateString('zh-CN') : undefined,
+      修改日期: note.data.修改日期 ? new Date(note.data.修改日期).toLocaleDateString('zh-CN') : undefined,
+    }}
+  >
+    <Content />
+  </PageLayout>
+</Layout>

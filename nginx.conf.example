@@ -1,0 +1,16 @@
+server {
+    listen 80;
+    server_name kb.your-company.internal;
+
+    root /var/www/kb;
+    index index.html;
+
+    location / {
+        try_files $uri $uri.html $uri/ =404;
+    }
+
+    # Pagefind static assets
+    location /pagefind/ {
+        expires 30d;
+    }
+}
