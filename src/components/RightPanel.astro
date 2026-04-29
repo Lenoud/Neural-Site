@@ -6,16 +6,18 @@ import Backlinks from './Backlinks.astro';
 interface Props {
   headings?: { depth: number; slug: string; text: string }[];
   backlinks?: { slug: string; title: string }[];
-  graphData?: any;
+  graphDataD1?: any;
+  graphDataD2?: any;
+  graphDataD3?: any;
   currentId?: string;
   metadata?: Record<string, string | undefined>;
 }
-const { headings = [], backlinks = [], graphData, currentId, metadata } = Astro.props;
+const { headings = [], backlinks = [], graphDataD1, graphDataD2, graphDataD3, currentId, metadata } = Astro.props;
 
 const hasMetadata = metadata && Object.values(metadata).some(v => v);
 ---
 
-{graphData && currentId && <LocalGraph graphData={graphData} currentId={currentId} />}
+{graphDataD1 && currentId && <LocalGraph graphDataD1={graphDataD1} graphDataD2={graphDataD2} graphDataD3={graphDataD3} currentId={currentId} />}
 <OnThisPage headings={headings} />
 {hasMetadata && (
   <section>

@@ -20,60 +20,105 @@ const title = note.data.title || note.id.split('/').pop() || note.id;
 const { byPath, byName } = await buildSlugIndex();
 const allNotes = await getCollection('notes');
 
-const nodes = [{ id: note.id, name: title }];
-const links: { source: string; target: string }[] = [];
+const backlinkIndex = await getBacklinkIndex();
 
-const matches = note.body?.match(/\[\[(.*?)\]\]/g);
-if (matches) {
-  for (const link of matches) {
-    const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
-    const targetId = resolveWikilink(targetName, byPath, byName, note.id);
-    if (targetId) {
-      if (!nodes.find(n => n.id === targetId)) {
-        const targetNote = allNotes.find(n => n.id === targetId);
-        nodes.push({ id: targetId, name: targetNote?.data.title || targetName });
+// Build forward link map and all links from every note
+const forwardMap = new Map<string, Set<string>>();
+const allLinks: { source: string; target: string }[] = [];
+for (const src of allNotes) {
+  const wikiMatches = src.body?.match(/\[\[(.*?)\]\]/g);
+  if (wikiMatches) {
+    for (const link of wikiMatches) {
+      const targetName = link.replace(/[\[\]]/g, '').split('|')[0].split('#')[0];
+      if (!targetName) continue;
+      const targetId = resolveWikilink(targetName, byPath, byName, src.id);
+      if (targetId && targetId !== src.id) {
+        let set = forwardMap.get(src.id);
+        if (!set) { set = new Set(); forwardMap.set(src.id, set); }
+        if (!set.has(targetId)) {
+          set.add(targetId);
+          allLinks.push({ source: src.id, target: targetId });
+        }
       }
-      links.push({ source: note.id, target: targetId });
+    }
+  }
+  const mdMatches = src.body?.match(/\[([^\]]*)\]\(([^)]+\.md)\)/g);
+  if (mdMatches) {
+    for (const link of mdMatches) {
+      const urlMatch = link.match(/\]\(([^)]+\.md)\)/);
+      if (!urlMatch) continue;
+      const rawTarget = urlMatch[1].replace(/\.md$/, '');
+      const targetId = resolveWikilink(rawTarget, byPath, byName, src.id);
+      if (targetId && targetId !== src.id) {
+        let set = forwardMap.get(src.id);
+        if (!set) { set = new Set(); forwardMap.set(src.id, set); }
+        if (!set.has(targetId)) {
+          set.add(targetId);
+          allLinks.push({ source: src.id, target: targetId });
+        }
+      }
     }
   }
 }
-// 同时解析标准 markdown 链接 [text](file.md)
-const mdMatches = note.body?.match(/\[([^\]]*)\]\(([^)]+\.md)\)/g);
-if (mdMatches) {
-  for (const link of mdMatches) {
-    const urlMatch = link.match(/\]\(([^)]+\.md)\)/);
-    if (!urlMatch) continue;
-    const rawTarget = urlMatch[1].replace(/\.md$/, '');
-    const targetId = resolveWikilink(rawTarget, byPath, byName, note.id);
-    if (targetId && targetId !== note.id) {
-      if (!nodes.find(n => n.id === targetId)) {
-        const targetNote = allNotes.find(n => n.id === targetId);
-        nodes.push({ id: targetId, name: targetNote?.data.title || rawTarget });
-      }
-      links.push({ source: note.id, target: targetId });
-    }
+
+// Bidirectional neighbor map for BFS
+const neighborMap = new Map<string, Set<string>>();
+for (const [src, targets] of forwardMap) {
+  if (!neighborMap.has(src)) neighborMap.set(src, new Set());
+  for (const t of targets) {
+    neighborMap.get(src)!.add(t);
+    if (!neighborMap.has(t)) neighborMap.set(t, new Set());
+    neighborMap.get(t)!.add(src);
   }
 }
+
+// BFS from current note, 3 layers
+const bfsLayers: Set<string>[] = [];
+{
+  const visited = new Set<string>([note.id]);
+  let frontier = new Set<string>([note.id]);
+  for (let d = 0; d < 3; d++) {
+    const next = new Set<string>();
+    for (const id of frontier) {
+      for (const n of (neighborMap.get(id) || [])) {
+        if (!visited.has(n)) { visited.add(n); next.add(n); }
+      }
+    }
+    bfsLayers.push(next);
+    frontier = next;
+  }
+}
+
+// Node info lookup
+const nodeMap = new Map(allNotes.map(n => [n.id, { id: n.id, name: n.data.title || n.id.split('/').pop() || n.id }]));
+nodeMap.set(note.id, { id: note.id, name: title });
 
 const MAX_LOCAL_GRAPH_NODES = 30;
-if (nodes.length > MAX_LOCAL_GRAPH_NODES) {
-  const kept = new Set([note.id, ...nodes.slice(1, MAX_LOCAL_GRAPH_NODES).map(n => n.id)]);
-  const filteredNodes = nodes.filter(n => kept.has(n.id));
-  const filteredLinks = links.filter(l => kept.has(l.source) && kept.has(l.target));
-  nodes.length = 0;
-  nodes.push(...filteredNodes);
-  links.length = 0;
-  links.push(...filteredLinks);
+
+function buildGraphData(depth: number) {
+  const ids = new Set<string>([note.id]);
+  for (let i = 0; i < depth; i++) {
+    for (const id of bfsLayers[i]) ids.add(id);
+  }
+  let nodes = [...ids].map(id => nodeMap.get(id)).filter(Boolean) as { id: string; name: string }[];
+  if (nodes.length > MAX_LOCAL_GRAPH_NODES) {
+    const kept = new Set([note.id, ...nodes.slice(1, MAX_LOCAL_GRAPH_NODES).map(n => n.id)]);
+    nodes = nodes.filter(n => kept.has(n.id));
+  }
+  const finalIds = new Set(nodes.map(n => n.id));
+  const links = allLinks.filter(l => finalIds.has(l.source) && finalIds.has(l.target));
+  return { nodes, links };
 }
 
-const backlinkIndex = await getBacklinkIndex();
 const backlinks = backlinkIndex.get(note.id) || [];
 
 const tocHeadings = headings
   ?.filter((h: any) => h.depth >= 1 && h.depth <= 3)
   .map((h: any) => ({ depth: h.depth, slug: h.slug, text: h.text })) || [];
 
-const graphData = { nodes, links };
+const graphDataD1 = buildGraphData(1);
+const graphDataD2 = buildGraphData(2);
+const graphDataD3 = buildGraphData(3);
 ---
 
 <Layout title={title}>
@@ -82,7 +127,9 @@ const graphData = { nodes, links };
     currentSlug={note.id}
     headings={tocHeadings}
     backlinks={backlinks}
-    graphData={graphData}
+    graphDataD1={graphDataD1}
+    graphDataD2={graphDataD2}
+    graphDataD3={graphDataD3}
     currentId={note.id}
     metadata={{
       作者: note.data.作者,
