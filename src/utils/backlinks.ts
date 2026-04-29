@@ -11,14 +11,18 @@ function resolveLink(
   byPath: Map<string, { id: string }>,
   byName: Map<string, { id: string }[]>,
 ): string | null {
-  const targetName = raw.replace(/[\[\]]/g, '').split('|')[0];
+  // 去括号，剥离别名（|）和标题锚点（#）
+  const targetName = raw.replace(/[\[\]]/g, '').split('|')[0].split('#')[0];
+  if (!targetName) return null;
   // 标准化：空格变短横线、全小写（与 Astro glob loader 一致）
   const normalized = targetName.replace(/ /g, '-').toLowerCase();
+  // 去点号（Astro glob loader 会去掉路径中的点，如 v1.0 → v10、P.A.R.A. → PARA）
+  const dotless = normalized.replace(/\./g, '');
 
-  let targetId = byPath.get(normalized)?.id;
+  let targetId = byPath.get(normalized)?.id || byPath.get(dotless)?.id;
 
   if (!targetId) {
-    const candidates = byName.get(normalized);
+    const candidates = byName.get(normalized) || byName.get(dotless);
     if (candidates) {
       if (candidates.length === 1) {
         targetId = candidates[0].id;

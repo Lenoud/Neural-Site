@@ -42,12 +42,10 @@ export async function buildSlugIndex(): Promise<{
     entry.fileName = parts[parts.length - 1];
     entry.fullPath = note.id;
 
-    // 按完整路径索引（原始 + 去点号 + 标准化空格）
+    // 仅按完整路径索引（不存 fileName，避免同名文件覆盖导致消歧失效）
     byPath.set(note.id, entry);
-    byPath.set(entry.fileName, entry);
-    byPath.set(entry.fileName.replace(/\.md$/, ''), entry);
 
-    // 按文件名索引（一个文件名可能对应多个文档）
+    // 按文件名索引（一个文件名可能对应多个文档，由 resolveWikilink 做消歧）
     const list = byName.get(entry.fileName) || [];
     list.push(entry);
     byName.set(entry.fileName, list);
