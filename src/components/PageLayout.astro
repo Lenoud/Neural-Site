@@ -7,11 +7,13 @@ interface Props {
   currentSlug?: string;
   headings?: { depth: number; slug: string; text: string }[];
   backlinks?: { slug: string; title: string }[];
-  graphData?: object;
+  graphDataD1?: object;
+  graphDataD2?: object;
+  graphDataD3?: object;
   currentId?: string;
   metadata?: Record<string, string | undefined>;
 }
-const { title, currentSlug, headings = [], backlinks = [], graphData, currentId, metadata } = Astro.props;
+const { title, currentSlug, headings = [], backlinks = [], graphDataD1, graphDataD2, graphDataD3, currentId, metadata } = Astro.props;
 ---
 <div class="page-layout">
   <button class="mobile-toggle" id="mobile-toggle">☰</button>
@@ -25,7 +27,9 @@ const { title, currentSlug, headings = [], backlinks = [], graphData, currentId,
     <RightPanel
       headings={headings}
       backlinks={backlinks}
-      graphData={graphData}
+      graphDataD1={graphDataD1}
+      graphDataD2={graphDataD2}
+      graphDataD3={graphDataD3}
       currentId={currentId}
       metadata={metadata}
     />

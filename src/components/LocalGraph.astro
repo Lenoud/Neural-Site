@@ -1,23 +1,70 @@
 ---
 interface Props {
-  graphData: {
+  graphDataD1: {
+    nodes: { id: string; name: string }[];
+    links: { source: string; target: string }[];
+  };
+  graphDataD2: {
+    nodes: { id: string; name: string }[];
+    links: { source: string; target: string }[];
+  };
+  graphDataD3: {
     nodes: { id: string; name: string }[];
     links: { source: string; target: string }[];
   };
   currentId: string;
 }
-const { graphData, currentId } = Astro.props;
+const { graphDataD1, graphDataD2, graphDataD3, currentId } = Astro.props;
 const base = import.meta.env.BASE_URL;
 ---
 
 <section class="graph-section">
-  <h4>交互图谱</h4>
-  <div id="local-graph" data-graph={JSON.stringify(graphData)} data-current={currentId}></div>
+  <div class="graph-header">
+    <h4>交互图谱</h4>
+    <div class="depth-control">
+      <label for="graph-depth">深度</label>
+      <input type="range" id="graph-depth" min="1" max="3" step="1" value="1" />
+      <span class="depth-value">1</span>
+    </div>
+  </div>
+  <div
+    id="local-graph"
+    data-graph-d1={JSON.stringify(graphDataD1)}
+    data-graph-d2={JSON.stringify(graphDataD2)}
+    data-graph-d3={JSON.stringify(graphDataD3)}
+    data-current={currentId}
+  ></div>
   <a href={`${base}graph`} class="expand-link">展开 →</a>
 </section>
 
 <style>
   .graph-section { margin-bottom: 24px; }
+  .graph-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .graph-header h4 { margin: 0; }
+  .depth-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .depth-control input[type="range"] {
+    width: 60px;
+    height: 4px;
+    accent-color: #6ab0e6;
+    cursor: pointer;
+  }
+  .depth-value {
+    min-width: 14px;
+    text-align: center;
+    font-weight: bold;
+    color: #6ab0e6;
+  }
   #local-graph { width: 100%; height: 200px; border: 1px solid var(--border-color); border-radius: 6px; }
   .expand-link {
     display: inline-block;
@@ -32,12 +79,15 @@ const base = import.meta.env.BASE_URL;
 
   document.querySelectorAll('#local-graph').forEach(container => {
     const el = container as HTMLElement;
-    const data = JSON.parse(el.dataset.graph || '{}');
+    const dataD1 = JSON.parse(el.dataset.graphD1 || '{}');
+    const dataD2 = JSON.parse(el.dataset.graphD2 || '{}');
+    const dataD3 = JSON.parse(el.dataset.graphD3 || '{}');
     const currentId = el.dataset.current;
+    const datasets = [null, dataD1, dataD2, dataD3];
     let hoverNodeId: string | null = null;
 
     const graph = ForceGraph()(el)
-      .graphData(data)
+      .graphData(dataD1)
       .nodeId('id')
       .nodeLabel('name')
       .nodeColor((node: any) => node.id === currentId ? '#6ab0e6' : '#666666')
@@ -82,5 +132,15 @@ const base = import.meta.env.BASE_URL;
         hoverNodeId = node?.id || null;
         graph.linkColor(graph.linkColor());
       });
+
+    const slider = el.parentElement?.querySelector('#graph-depth') as HTMLInputElement;
+    const depthLabel = el.parentElement?.querySelector('.depth-value') as HTMLElement;
+    if (slider && depthLabel) {
+      slider.addEventListener('input', () => {
+        const depth = parseInt(slider.value);
+        depthLabel.textContent = slider.value;
+        graph.graphData(datasets[depth]);
+      });
+    }
   });
 </script>
