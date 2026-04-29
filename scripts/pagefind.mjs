@@ -1,7 +1,13 @@
 import { execSync } from 'node:child_process';
 import { cpSync, mkdirSync, existsSync, readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { resolve, join, extname, relative } from 'node:path';
-import sharp from 'sharp';
+
+let sharp;
+try {
+  sharp = (await import('sharp')).default;
+} catch {
+  console.warn('sharp not available, skipping WebP optimization');
+}
 
 // 复制图片到 dist/images/
 const imageExts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp', '.ico']);
@@ -33,6 +39,7 @@ const MAX_WIDTH = 1400;
 const WEBP_QUALITY = 80;
 
 async function optimizeImages(imagesDir) {
+  if (!sharp) return;
   console.log('\nOptimizing images (WebP)...');
   const files = execSync(`find "${imagesDir}" -type f`, { encoding: 'utf-8' }).trim().split('\n').filter(Boolean);
   let converted = 0;
@@ -67,6 +74,7 @@ await optimizeImages('dist/images');
 
 // HTML 替换：<img> → <picture> with WebP source
 function injectPictureElements(distDir) {
+  if (!sharp) return;
   console.log('\nInjecting <picture> elements...');
   const htmlFiles = execSync(`find "${distDir}" -name "*.html" -type f`, { encoding: 'utf-8' }).trim().split('\n').filter(Boolean);
   let replaced = 0;
