@@ -66,6 +66,8 @@ a:hover { text-decoration: underline; }
 .content-area pre { background: var(--bg-hover); padding: 16px; border-radius: 6px; overflow-x: auto; margin-bottom: 16px; }
 .content-area pre code { background: none; padding: 0; }
 .content-area blockquote { border-left: 3px solid var(--accent); padding-left: 16px; color: var(--text-muted); margin-bottom: 16px; }
+.content-area img { cursor: zoom-in; max-width: 100%; border-radius: 4px; }
+.medium-zoom-image--opened { cursor: zoom-out; }
 
 /* Obsidian ==高亮== */
 mark { background: rgba(255, 200, 50, 0.25); color: var(--text-primary); padding: 1px 4px; border-radius: 2px; }

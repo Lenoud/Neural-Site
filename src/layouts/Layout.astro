@@ -21,5 +21,12 @@ const pageUrl = Astro.url.pathname;
   <body>
     <slot />
     <SearchDialog />
+    <script>
+      import mediumZoom from 'medium-zoom';
+      mediumZoom('.content-area img', {
+        background: 'var(--bg-primary, #1e1e1e)',
+        margin: 24,
+      });
+    </script>
   </body>
 </html>
