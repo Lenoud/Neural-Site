@@ -12,11 +12,13 @@ function resolveLink(
   byName: Map<string, { id: string }[]>,
 ): string | null {
   const targetName = raw.replace(/[\[\]]/g, '').split('|')[0];
+  // 标准化：空格变短横线、全小写（与 Astro glob loader 一致）
+  const normalized = targetName.replace(/ /g, '-').toLowerCase();
 
-  let targetId = byPath.get(targetName.toLowerCase())?.id;
+  let targetId = byPath.get(normalized)?.id;
 
   if (!targetId) {
-    const candidates = byName.get(targetName.toLowerCase());
+    const candidates = byName.get(normalized);
     if (candidates) {
       if (candidates.length === 1) {
         targetId = candidates[0].id;
