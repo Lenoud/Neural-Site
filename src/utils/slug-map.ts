@@ -42,9 +42,10 @@ export async function buildSlugIndex(): Promise<{
     entry.fileName = parts[parts.length - 1];
     entry.fullPath = note.id;
 
-    // 按完整路径索引（原始 + 小写 都存）
+    // 按完整路径索引（原始 + 去点号 + 标准化空格）
     byPath.set(note.id, entry);
     byPath.set(entry.fileName, entry);
+    byPath.set(entry.fileName.replace(/\.md$/, ''), entry);
 
     // 按文件名索引（一个文件名可能对应多个文档）
     const list = byName.get(entry.fileName) || [];
@@ -68,16 +69,19 @@ export function resolveWikilink(
   byName: Map<string, SlugEntry[]>,
   currentPath?: string,
 ): string | null {
+  // 标准化：空格变短横线、全小写（与 Astro glob loader 一致）
+  const normalized = target.replace(/ /g, '-').toLowerCase();
+
   // 1. 精确路径匹配
-  let pathMatch = byPath.get(target.toLowerCase());
+  let pathMatch = byPath.get(normalized);
   if (pathMatch) return pathMatch.id;
   // 兼容带点号的文件名（如 01.2 → 012）
-  const dotless = target.replace(/\./g, '').toLowerCase();
+  const dotless = normalized.replace(/\./g, '');
   pathMatch = byPath.get(dotless);
   if (pathMatch) return pathMatch.id;
 
   // 2. 文件名匹配
-  let candidates = byName.get(target.toLowerCase());
+  let candidates = byName.get(normalized);
   if (!candidates || candidates.length === 0) {
     candidates = byName.get(dotless);
   }
