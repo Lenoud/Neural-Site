@@ -6,8 +6,10 @@
 
 - **双链接格式** — 同时支持 `[[wikilink]]` 和标准 `[text](file.md)` Markdown 链接，兼容 GitBook/Obsidian 等来源
 - **Obsidian 语法** — 支持 `==高亮==`、`%%注释%%`、`> [!NOTE] Callout` 等扩展语法
-- **交互式图谱** — 全局图谱与局部图谱，节点 hover 高亮连线，缩放自动隐藏标签
-- **中文全文搜索** — 集成 Pagefind，Ctrl+K 快速搜索
+- **交互式图谱** — 全局图谱与局部图谱，支持 1-3 层深度调节，节点 hover 高亮连线，缩放自动隐藏标签
+- **图片优化** — 构建时自动生成 WebP 格式（体积减少约 80%），`<picture>` 元素自适应加载
+- **图片灯箱** — 点击图片原地放大查看，Medium/Notion 风格交互体验
+- **中文全文搜索** — 集成 Pagefind，`Cmd+K` / `Ctrl+K` 快捷键唤起
 - **卡片式首页** — 自动扫描知识库目录，按文档数量排序展示
 - **三栏布局** — 左侧目录导航 + 中间内容区 + 右侧 TOC / 元信息 / 反向链接 / 局部图谱
 - **外部内容同步** — 通过 `content-repos.json` 配置，构建时自动从远程仓库拉取内容
@@ -37,7 +39,8 @@ src/
     ├── nav-tree.ts                # 导航树构建
     └── slug-map.ts                # Slug 索引与链接解析
 scripts/
-└── sync-content.mjs               # 外部内容仓库同步脚本
+├── sync-content.mjs               # 外部内容仓库同步脚本
+└── pagefind.mjs                    # 图片优化 + Pagefind 索引
 content-repos.json                 # 外部仓库同步配置
 ```
 
@@ -118,7 +121,7 @@ order: 10              # 可选，控制导航排序
 
 ### 图片
 
-支持 Obsidian 原生 `![[image.png]]` 语法。图片放在：
+支持 Obsidian 原生 `![[image.png]]` 语法，点击可放大查看。图片放在：
 
 - `attachments/` — 全局附件目录
 - `src/content/notes/` — 跟笔记放一起
@@ -128,6 +131,8 @@ order: 10              # 可选，控制导航排序
 ![[screenshot.png|300]]       # 指定宽度（px）
 ![[screenshot.png|50%]]       # 指定宽度（百分比）
 ```
+
+构建时 PNG/JPEG 自动转换为 WebP（减少约 80% 体积），浏览器优先加载 WebP 格式。CI 环境不支持 sharp 时自动跳过优化。
 
 ## 部署
 
@@ -150,3 +155,5 @@ order: 10              # 可选，控制导航排序
 - [Astro 6](https://astro.build) — 静态站点框架
 - [force-graph](https://github.com/vasturiano/force-graph) — 力导向图可视化
 - [Pagefind](https://pagefind.app) — 静态全文搜索
+- [sharp](https://sharp.pixelplumbing.com) — 图片优化（WebP 转换）
+- [medium-zoom](https://github.com/francoischalifour/medium-zoom) — 图片灯箱
