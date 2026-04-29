@@ -16,6 +16,7 @@
   "dependencies": {
     "astro": "^6.1.9",
     "force-graph": "^1.51.4",
+    "sharp": "^0.34.5",
     "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
