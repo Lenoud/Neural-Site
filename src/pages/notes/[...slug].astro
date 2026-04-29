@@ -70,7 +70,7 @@ const backlinkIndex = await getBacklinkIndex();
 const backlinks = backlinkIndex.get(note.id) || [];
 
 const tocHeadings = headings
-  ?.filter((h: any) => h.depth === 2 || h.depth === 3)
+  ?.filter((h: any) => h.depth >= 1 && h.depth <= 3)
   .map((h: any) => ({ depth: h.depth, slug: h.slug, text: h.text })) || [];
 
 const graphData = { nodes, links };
