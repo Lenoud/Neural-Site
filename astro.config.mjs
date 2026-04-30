@@ -81,6 +81,7 @@ const { byPath, byName } = buildSlugIndexFromFS();
 
 export default defineConfig({
   base,
+  prefetch: true,
   markdown: {
     remarkPlugins: [[remarkWikilinks, { byPath, byName, base, imageIndex }], remarkObsidianExt],
     rehypePlugins: [[rehypeRelativeMdLinks, { byPath, byName, base }]],
