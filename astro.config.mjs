@@ -7,7 +7,7 @@ import fs from 'node:fs';
 
 // GitHub Pages 项目站点需要 base = /<repo-name>/
 // 本地开发和内部 Nginx 部署不需要前缀
-// 通过环境变量 BASE_PATH 控制，CI 中设置 BASE_PATH=/Neural-Site/
+// 通过环境变量 BASE_PATH 控制，CI 中设置 BASE_PATH=/obsidian-site/
 const base = process.env.BASE_PATH || '/';
 
 function buildSlugIndexFromFS() {

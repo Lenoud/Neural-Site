@@ -26,9 +26,9 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build
+      - run: npm run build:with-sync
         env:
-          BASE_PATH: /Neural-Site/
+          BASE_PATH: /obsidian-site/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

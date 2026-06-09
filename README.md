@@ -1,4 +1,4 @@
-# Neural-Site — 知识库站点
+# Obsidian-Site — 知识库站点
 
 基于 Astro 6 构建的 Obsidian Publish 风格知识库站点，支持 `[[wikilink]]` 双链、标准 Markdown 链接、Obsidian 扩展语法、图谱可视化、中文全文搜索。
 
