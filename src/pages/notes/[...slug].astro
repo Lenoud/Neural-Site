@@ -2,8 +2,8 @@
 import { getCollection, render } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
 import PageLayout from '../../components/PageLayout.astro';
-import { buildSlugIndex, resolveWikilink } from '../../utils/slug-map';
 import { getBacklinkIndex } from '../../utils/backlink-cache';
+import { getLinkGraph } from '../../utils/link-graph';
 
 export async function getStaticPaths() {
   const notes = await getCollection('notes');
@@ -17,60 +17,12 @@ const { note } = Astro.props;
 const { Content, headings } = await render(note);
 const title = note.data.title || note.id.split('/').pop() || note.id;
 
-const { byPath, byName } = await buildSlugIndex();
 const allNotes = await getCollection('notes');
 
 const backlinkIndex = await getBacklinkIndex();
 
-// Build forward link map and all links from every note
-const forwardMap = new Map<string, Set<string>>();
-const allLinks: { source: string; target: string }[] = [];
-for (const src of allNotes) {
-  const wikiMatches = src.body?.match(/\[\[(.*?)\]\]/g);
-  if (wikiMatches) {
-    for (const link of wikiMatches) {
-      const targetName = link.replace(/[\[\]]/g, '').split('|')[0].split('#')[0];
-      if (!targetName) continue;
-      const targetId = resolveWikilink(targetName, byPath, byName, src.id);
-      if (targetId && targetId !== src.id) {
-        let set = forwardMap.get(src.id);
-        if (!set) { set = new Set(); forwardMap.set(src.id, set); }
-        if (!set.has(targetId)) {
-          set.add(targetId);
-          allLinks.push({ source: src.id, target: targetId });
-        }
-      }
-    }
-  }
-  const mdMatches = src.body?.match(/\[([^\]]*)\]\(([^)]+\.md)\)/g);
-  if (mdMatches) {
-    for (const link of mdMatches) {
-      const urlMatch = link.match(/\]\(([^)]+\.md)\)/);
-      if (!urlMatch) continue;
-      const rawTarget = urlMatch[1].replace(/\.md$/, '');
-      const targetId = resolveWikilink(rawTarget, byPath, byName, src.id);
-      if (targetId && targetId !== src.id) {
-        let set = forwardMap.get(src.id);
-        if (!set) { set = new Set(); forwardMap.set(src.id, set); }
-        if (!set.has(targetId)) {
-          set.add(targetId);
-          allLinks.push({ source: src.id, target: targetId });
-        }
-      }
-    }
-  }
-}
-
-// Bidirectional neighbor map for BFS
-const neighborMap = new Map<string, Set<string>>();
-for (const [src, targets] of forwardMap) {
-  if (!neighborMap.has(src)) neighborMap.set(src, new Set());
-  for (const t of targets) {
-    neighborMap.get(src)!.add(t);
-    if (!neighborMap.has(t)) neighborMap.set(t, new Set());
-    neighborMap.get(t)!.add(src);
-  }
-}
+// 全站链接图整个构建只算一次（模块级缓存），每页只做 BFS
+const { allLinks, neighborMap } = await getLinkGraph();
 
 // BFS from current note, 3 layers
 const bfsLayers: Set<string>[] = [];

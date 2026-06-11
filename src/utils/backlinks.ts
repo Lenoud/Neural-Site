@@ -7,6 +7,17 @@ export interface BacklinkEntry {
 }
 
 /**
+ * 剥离不应参与链接统计的内容：围栏代码块、行内代码、%%注释%%
+ * （渲染端这些区域里的 [[wikilink]] 不会变成链接，统计端需保持一致）
+ */
+export function stripNonContent(body: string): string {
+  return body
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`[^`\n]*`/g, '')
+    .replace(/%%[\s\S]*?%%/g, '');
+}
+
+/**
  * Single-pass O(n) backlink index builder.
  * Returns Map<targetId, BacklinkEntry[]> — every note's incoming links.
  */
@@ -18,7 +29,7 @@ export function buildBacklinkIndex(
   const index = new Map<string, BacklinkEntry[]>();
 
   for (const note of allNotes) {
-    const matches = note.body?.match(/\[\[(.*?)\]\]/g);
+    const matches = note.body ? stripNonContent(note.body).match(/\[\[(.*?)\]\]/g) : null;
     if (!matches) continue;
 
     const seen = new Set<string>();

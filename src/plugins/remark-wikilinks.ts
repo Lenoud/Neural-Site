@@ -1,4 +1,9 @@
 import { visit } from 'unist-util-visit';
+import { slug as slugifyHeading } from 'github-slugger';
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 /**
  * 解析 wikilink 内部语法
@@ -49,8 +54,11 @@ export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; 
 
     // 第二遍：将标准 markdown 链接 [text](xx.md) 解析为内部链接
     visit(tree, 'link', (node: any) => {
-      const url = node.url;
-      if (!url || !url.endsWith('.md')) return;
+      let url = node.url;
+      if (!url) return;
+      // 编辑器可能将路径百分号编码（空格、中文）
+      try { url = decodeURIComponent(url); } catch { /* 非法编码序列，按原值处理 */ }
+      if (!url.endsWith('.md')) return;
       // 跳过外部链接
       if (/^(https?:|\/)/.test(url)) return;
 
@@ -136,25 +144,25 @@ export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; 
               }
               parts.push({
                 type: 'html',
-                value: `<img src="${imgSrc}" alt="${imgTarget}"${style} loading="lazy" />`,
+                value: `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(imgTarget)}"${style} loading="lazy" />`,
               });
             } else {
               parts.push({
                 type: 'html',
-                value: `<span class="wikilink-broken" title="图片不存在: ${imgTarget}">${imgTarget}</span>`,
+                value: `<span class="wikilink-broken" title="图片不存在: ${escapeHtml(imgTarget)}">${escapeHtml(imgTarget)}</span>`,
               });
             }
           } else if (imageExts.has(ext)) {
             // 没有图片索引，直接用路径
             parts.push({
               type: 'html',
-              value: `<span class="wikilink-broken" title="图片不存在: ${imgTarget}">${imgTarget}</span>`,
+              value: `<span class="wikilink-broken" title="图片不存在: ${escapeHtml(imgTarget)}">${escapeHtml(imgTarget)}</span>`,
             });
           } else {
             // ![[page]] 嵌入笔记（Obsidian 嵌入语法，暂显示为链接）
             parts.push({
               type: 'html',
-              value: `<span class="wikilink-broken" title="暂不支持嵌入笔记: ${raw}">${raw}</span>`,
+              value: `<span class="wikilink-broken" title="暂不支持嵌入笔记: ${escapeHtml(raw)}">${escapeHtml(raw)}</span>`,
             });
           }
 
@@ -168,7 +176,7 @@ export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; 
         if (!target && heading) {
           parts.push({
             type: 'link',
-            url: `#${heading}`,
+            url: `#${slugifyHeading(heading)}`,
             children: [{ type: 'text', value: alias }],
           });
           lastIndex = combinedRegex.lastIndex;
@@ -195,7 +203,7 @@ export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; 
         }
 
         if (resolvedId) {
-          const url = heading ? `${base}notes/${resolvedId}#${heading}` : `${base}notes/${resolvedId}`;
+          const url = heading ? `${base}notes/${resolvedId}#${slugifyHeading(heading)}` : `${base}notes/${resolvedId}`;
           parts.push({
             type: 'link',
             url,
@@ -204,7 +212,7 @@ export function remarkWikilinks(options: { byPath: Map<string, { id: string }>; 
         } else {
           parts.push({
             type: 'html',
-            value: `<span class="wikilink-broken" title="文档不存在: ${target}">${alias}</span>`,
+            value: `<span class="wikilink-broken" title="文档不存在: ${escapeHtml(target)}">${escapeHtml(alias)}</span>`,
           });
         }
 

@@ -76,6 +76,8 @@ await optimizeImages('dist/images');
 function injectPictureElements(distDir) {
   if (!sharp) return;
   console.log('\nInjecting <picture> elements...');
+  // GitHub Pages 等子路径部署时，img src 带 BASE_PATH 前缀，需剥离才能映射回 dist 内的文件
+  const basePath = process.env.BASE_PATH || '/';
   const htmlFiles = execSync(`find "${distDir}" -name "*.html" -type f`, { encoding: 'utf-8' }).trim().split('\n').filter(Boolean);
   let replaced = 0;
 
@@ -85,7 +87,10 @@ function injectPictureElements(distDir) {
     let changed = false;
 
     html = html.replace(imgRegex, (match, before, src, ext, after) => {
-      const localPath = join(distDir, src.replace(/^\//, ''));
+      let srcPath = src;
+      try { srcPath = decodeURI(src); } catch { /* 非法编码序列，按原值处理 */ }
+      srcPath = srcPath.startsWith(basePath) ? srcPath.slice(basePath.length) : srcPath.replace(/^\//, '');
+      const localPath = join(distDir, srcPath);
       const webpLocalPath = localPath.slice(0, -ext.length - 1) + '.webp';
 
       if (!existsSync(webpLocalPath)) return match;

@@ -88,7 +88,9 @@ const base = import.meta.env.BASE_URL;
     }
   });
 
+  let searchSeq = 0;
   input.addEventListener('input', async () => {
+    const seq = ++searchSeq;
     const search = await initSearch(basePath);
     const query = input.value.trim();
     if (!query) { results.innerHTML = ''; return; }
@@ -100,6 +102,8 @@ const base = import.meta.env.BASE_URL;
         return `<a class="search-card" href="${data.url}"><span class="search-title">${data.meta?.title || data.url}</span><span class="search-excerpt">${data.excerpt || ''}</span></a>`;
       })
     );
+    // 异步返回可能乱序，只渲染最新一次请求的结果
+    if (seq !== searchSeq) return;
     results.innerHTML = html.join('');
   });
 </script>

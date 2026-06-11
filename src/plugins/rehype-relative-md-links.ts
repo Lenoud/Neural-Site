@@ -14,9 +14,12 @@ export function rehypeRelativeMdLinks(options: { byPath: Map<string, { id: strin
       const hrefIdx = node.properties?.href != null ? 'href' : null;
       if (!hrefIdx) return;
 
-      const href = String(node.properties[hrefIdx]);
-      if (!href || !href.endsWith('.md')) return;
+      let href = String(node.properties[hrefIdx]);
+      if (!href) return;
       if (/^(https?:|\/\/|#|mailto:)/.test(href)) return;
+      // 编辑器可能将路径百分号编码（空格、中文）
+      try { href = decodeURIComponent(href); } catch { /* 非法编码序列，按原值处理 */ }
+      if (!href.endsWith('.md')) return;
 
       // 去掉 .md 后缀
       const linkTarget = href.replace(/\.md$/, '');

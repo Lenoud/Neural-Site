@@ -6,6 +6,24 @@ import { visit } from 'unist-util-visit';
  * 2. %%注释%% → 静默移除
  * 3. > [!type] 标注 → 带样式的 callout
  */
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// 已有样式的 callout 类型（见 global.css）
+const KNOWN_CALLOUTS = new Set(['note', 'tip', 'warning', 'important', 'caution', 'info', 'example', 'quote']);
+
+// Obsidian callout 别名 → 已有样式类型
+const CALLOUT_ALIASES: Record<string, string> = {
+  abstract: 'note', summary: 'note', tldr: 'note', todo: 'note',
+  hint: 'tip', success: 'tip', check: 'tip', done: 'tip',
+  question: 'info', help: 'info', faq: 'info',
+  attention: 'warning',
+  failure: 'caution', fail: 'caution', missing: 'caution',
+  danger: 'caution', error: 'caution', bug: 'caution',
+  cite: 'quote',
+};
+
 export function remarkObsidianExt() {
   return (tree: any) => {
     // 处理 ==高亮== 和 %%注释%%
@@ -30,7 +48,7 @@ export function remarkObsidianExt() {
           // 高亮 → <mark>
           parts.push({
             type: 'html',
-            value: `<mark>${match[2]}</mark>`,
+            value: `<mark>${escapeHtml(match[2])}</mark>`,
           });
         }
         // %%注释%% → 静默移除，不输出任何内容
@@ -58,6 +76,7 @@ export function remarkObsidianExt() {
       if (!calloutMatch) return;
 
       const type = calloutMatch[1].toLowerCase();
+      const styleType = KNOWN_CALLOUTS.has(type) ? type : (CALLOUT_ALIASES[type] || 'note');
       const title = calloutMatch[2] || capitalize(calloutMatch[1]);
 
       // 移除标题行 [!type] title
@@ -75,11 +94,11 @@ export function remarkObsidianExt() {
       // 在 blockquote 前插入标题
       node.data = node.data || {};
       node.data.hProperties = {
-        className: `callout callout-${type}`,
+        className: `callout callout-${styleType}`,
       };
       node.children.unshift({
         type: 'html',
-        value: `<div class="callout-title">${title}</div>`,
+        value: `<div class="callout-title">${escapeHtml(title)}</div>`,
       });
     });
   };

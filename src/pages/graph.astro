@@ -1,43 +1,16 @@
 ---
 import { getCollection } from 'astro:content';
-import { buildSlugIndex, resolveWikilink } from '../utils/slug-map';
 import Layout from '../layouts/Layout.astro';
+import { getLinkGraph } from '../utils/link-graph';
 
 const allNotes = await getCollection('notes');
-const { byPath, byName } = await buildSlugIndex();
 
 const nodes = allNotes.map(n => ({
   id: n.id,
   name: n.data.title || n.id.split('/').pop() || n.id,
 }));
 
-const links: { source: string; target: string }[] = [];
-allNotes.forEach(source => {
-  // 匹配 [[wikilinks]]
-  const wikiMatches = source.body?.match(/\[\[(.*?)\]\]/g);
-  if (wikiMatches) {
-    wikiMatches.forEach(link => {
-      const targetName = link.replace(/[\[\]]/g, '').split('|')[0];
-      const targetId = resolveWikilink(targetName, byPath, byName, source.id);
-      if (targetId) {
-        links.push({ source: source.id, target: targetId });
-      }
-    });
-  }
-  // 匹配标准 markdown 链接 [text](file.md)
-  const mdMatches = source.body?.match(/\[([^\]]*)\]\(([^)]+\.md)\)/g);
-  if (mdMatches) {
-    mdMatches.forEach(link => {
-      const urlMatch = link.match(/\]\(([^)]+\.md)\)/);
-      if (!urlMatch) return;
-      const rawTarget = urlMatch[1].replace(/\.md$/, '');
-      const targetId = resolveWikilink(rawTarget, byPath, byName, source.id);
-      if (targetId && targetId !== source.id) {
-        links.push({ source: source.id, target: targetId });
-      }
-    });
-  }
-});
+const { allLinks: links } = await getLinkGraph();
 
 // 服务端过滤：超过 2000 节点时按连接密度取 top 2000，减少 HTML payload
 const MAX_GLOBAL_NODES = 2000;
