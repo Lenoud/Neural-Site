@@ -54,7 +54,8 @@ const tree = buildNavTree(allNotes);
 
 <script>
   document.getElementById('search-trigger')?.addEventListener('click', () => {
-    const dialog = document.getElementById('search-dialog')!;
+    const dialog = document.getElementById('search-dialog');
+    if (!dialog) return;
     dialog.style.display = 'flex';
     document.getElementById('search-input')?.focus();
   });

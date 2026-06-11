@@ -100,6 +100,7 @@ mark { background: rgba(255, 200, 50, 0.25); color: var(--text-primary); padding
 .right-panel h4 { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
 
 /* Mobile responsive */
+.sidebar-backdrop { display: none; }
 @media (max-width: 768px) {
   .page-layout { flex-direction: column; }
   .sidebar {
@@ -108,6 +109,12 @@ mark { background: rgba(255, 200, 50, 0.25); color: var(--text-primary); padding
     transition: left 0.3s ease;
   }
   .sidebar.open { left: 0; }
+  .sidebar.open + .sidebar-backdrop {
+    display: block;
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 45;
+  }
   .right-panel { display: none; }
   .content-area { padding: 20px; max-width: 100%; }
   .mobile-toggle {

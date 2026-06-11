@@ -20,6 +20,7 @@ const { title, currentSlug, headings = [], backlinks = [], graphDataD1, graphDat
   <aside class="sidebar" id="sidebar" data-current={currentSlug}>
     <Sidebar currentSlug={currentSlug} />
   </aside>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
   <main class="content-area" data-pagefind-body>
     <slot />
   </main>
@@ -39,5 +40,7 @@ const { title, currentSlug, headings = [], backlinks = [], graphDataD1, graphDat
 <script>
   const toggle = document.getElementById('mobile-toggle');
   const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
   toggle?.addEventListener('click', () => sidebar?.classList.toggle('open'));
+  backdrop?.addEventListener('click', () => sidebar?.classList.remove('open'));
 </script>
